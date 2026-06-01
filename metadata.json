@@ -1,0 +1,10 @@
+{
+  "name": "Yudisium App",
+  "description": "Aplikasi registrasi dan verifikasi kehadiran yudisium.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

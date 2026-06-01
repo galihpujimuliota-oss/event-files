@@ -1,16 +1,37 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { store, AttendeeData } from '../store/store';
 import { motion } from 'motion/react';
+import { User, Mail, Map, BookOpen, Camera, Phone, Loader2 } from 'lucide-react';
 
 export default function IdentityForm() {
   const navigate = useNavigate();
-  const [attendee] = useState<AttendeeData | null>(store.getAttendee());
+  const [attendee, setAttendee] = useState<AttendeeData | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [photoError, setPhotoError] = useState('');
 
-  if (!attendee) {
-    navigate('/login');
-    return null;
+  useEffect(() => {
+    // Simulate slight delay or async behavior to show progress indicator
+    const timer = setTimeout(() => {
+      const data = store.getAttendee();
+      if (!data || !data.id) {
+        navigate('/login');
+      } else {
+        setAttendee(data);
+        setIsLoaded(true);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
+  if (!isLoaded || !attendee) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center bg-white rounded-2xl min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-teal-600 animate-spin mb-4" />
+        <h2 className="text-base text-slate-500 font-medium tracking-tight">Memuat data sesi Anda...</h2>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -68,90 +89,118 @@ export default function IdentityForm() {
       transition={{ duration: 0.4 }}
       className="p-6 md:p-8"
     >
-      <div className="border-b border-slate-200 pb-4 mb-6">
-        <h2 className="text-xl font-bold text-slate-800">BAGIAN 1: IDENTITAS DIRI</h2>
-        <p className="text-slate-500 text-sm mt-1">Silakan lengkapi formulir identitas diri dengan benar.</p>
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+        <span className="text-teal-600 font-mono text-sm border border-teal-200 bg-teal-50 px-2 py-0.5 rounded-md">STEP_01</span>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Identitas Peserta</h2>
+          <p className="text-slate-400 text-[13px] leading-snug">Mohon lengkapi profil Anda dengan data yang valid.</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Alamat Email</label>
-          <input required name="email" type="email" className="input-base" placeholder="Contoh: peserta@gmail.com" defaultValue={attendee.email} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+              <Mail className="w-4 h-4 text-teal-600" /> Alamat Email
+            </label>
+            <input required name="email" type="email" className="input-base" placeholder="peserta@gmail.com" defaultValue={attendee?.email || ''} />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+              <User className="w-4 h-4 text-teal-600" /> Nama Lengkap Sesuai Ijazah
+            </label>
+            <input required name="fullName" type="text" onChange={handleUppercase} className="input-base" placeholder="ALI RAHMAN" defaultValue={attendee?.fullName || ''} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              No. NPK / Akun Siaga
+            </label>
+            <input required name="npk" type="text" onChange={handleNumbers} className="input-base font-mono" placeholder="123456789" defaultValue={attendee?.npk || ''} />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+              <Phone className="w-4 h-4 text-teal-600" /> Nomor WhatsApp
+            </label>
+            <input required name="phoneWA" type="text" onChange={handleNumbers} className="input-base font-mono" placeholder="081234567890" defaultValue={attendee?.phoneWA || ''} />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-          <input required name="fullName" type="text" onChange={handleUppercase} className="input-base" placeholder="Contoh: ALI RAHMAN IBRAHIM" defaultValue={attendee.fullName} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">No. NPK atau No. Akun Siaga</label>
-          <input required name="npk" type="text" onChange={handleNumbers} className="input-base" placeholder="Hanya Angka" defaultValue={attendee.npk} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Alamat</label>
-          <textarea required name="address" rows={3} onChange={handleUppercase} className="input-base" placeholder="Alamat Domisili" defaultValue={attendee.address}></textarea>
+        <div className="border-t border-slate-100 pt-6 mt-6">
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+            <Map className="w-4 h-4 text-teal-600" /> Alamat Domisili
+          </label>
+          <textarea required name="address" rows={2} onChange={handleUppercase} className="input-base resize-none" placeholder="Alamat Lengkap" defaultValue={attendee?.address || ''}></textarea>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Kota/Kabupaten</label>
-            <input required name="city" type="text" onChange={handleUppercase} className="input-base" placeholder="Contoh: KAB. MALANG" defaultValue={attendee.city} />
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Kota / Kabupaten</label>
+            <input required name="city" type="text" onChange={handleUppercase} className="input-base" placeholder="KAB MALANG" defaultValue={attendee?.city || ''} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Provinsi</label>
-            <input required name="province" type="text" onChange={handleUppercase} className="input-base" placeholder="Contoh: JAWA TIMUR" defaultValue={attendee.province} />
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Provinsi</label>
+            <input required name="province" type="text" onChange={handleUppercase} className="input-base" placeholder="JAWA TIMUR" defaultValue={attendee?.province || ''} />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Nama Sekolah/Madrasah</label>
-          <input required name="schoolName" type="text" onChange={handleUppercase} className="input-base" placeholder="Nama Sekolah Lengkap" defaultValue={attendee.schoolName} />
+        <div className="border-t border-slate-100 pt-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+              <BookOpen className="w-4 h-4 text-teal-600" /> Asal Instansi (Madrasah/Sekolah)
+            </label>
+            <input required name="schoolName" type="text" onChange={handleUppercase} className="input-base" placeholder="MIN 1 MALANG" defaultValue={attendee?.schoolName || ''} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Bidang Studi Sertifikasi</label>
+            <select required name="studyField" className="input-base bg-white" defaultValue={attendee?.studyField || ''}>
+              <option value="" disabled>Pilih Bidang Studi...</option>
+              <option value="Pendidikan Agama Islam (Dinas)">Pendidikan Agama Islam (Dinas)</option>
+              <option value="Akidah Akhlak">Akidah Akhlak</option>
+              <option value="Fiqih">Fiqih</option>
+              <option value="Sejarah Kebudayaan Islam">Sejarah Kebudayaan Islam</option>
+              <option value="Guru Kelas RA">Guru Kelas RA</option>
+              <option value="Guru Kelas MI">Guru Kelas MI</option>
+              <option value="Quran Hadist">Quran Hadist</option>
+              <option value="Bahasa Arab">Bahasa Arab</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">No HP (WA)</label>
-          <input required name="phoneWA" type="text" onChange={handleNumbers} className="input-base" placeholder="Hanya Angka" defaultValue={attendee.phoneWA} />
+        <div className="bg-teal-50/50 p-5 rounded-2xl border border-teal-100/50 relative overflow-hidden mt-8">
+          <div className="absolute -right-6 -bottom-6 opacity-10"><Camera className="w-32 h-32 text-teal-600" /></div>
+          <div className="relative z-10">
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-1">
+              <Camera className="w-4 h-4 text-teal-600" /> Pas Foto Resmi
+            </label>
+            <p className="text-xs text-slate-500 mb-4 font-medium tracking-wide">Maksimal 500kb. Latar Biru/Merah. Kemeja/Jas. Rasio 3x4.</p>
+            <input 
+              type="file" 
+              name="photoFile" 
+              accept="image/*"
+              required={!attendee?.photoUrl} 
+              className="block w-full text-sm text-slate-500
+                file:mr-4 file:py-2.5 file:px-5
+                file:rounded-lg file:border-0
+                file:text-xs file:font-semibold file:tracking-wider file:uppercase
+                file:bg-white file:text-teal-700 file:border file:border-teal-200
+                hover:file:bg-teal-50 transition-all cursor-pointer"
+            />
+            {photoError ? <p className="text-rose-500 text-sm mt-3 font-medium flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 block"></span>{photoError}</p> : null}
+            {attendee?.photoUrl ? <p className="text-sm font-medium text-teal-600 mt-3 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-teal-500 block"></span>Image verification passed.</p> : null}
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Bidang Studi</label>
-          <select required name="studyField" className="input-base bg-white" defaultValue={attendee.studyField}>
-            <option value="" disabled>Pilih Bidang Studi...</option>
-            <option value="Pendidikan Agama Islam (Dinas)">1. Pendidikan Agama Islam (Dinas)</option>
-            <option value="Akidah Akhlak">2. Akidah Akhlak</option>
-            <option value="Fiqih">3. Fiqih</option>
-            <option value="Sejarah Kebudayaan Islam">4. Sejarah Kebudayaan Islam</option>
-            <option value="Guru Kelas RA">5. Guru Kelas RA</option>
-            <option value="Guru Kelas MI">6. Guru Kelas MI</option>
-            <option value="Quran Hadist">7. Quran Hadist</option>
-            <option value="Bahasa Arab">8. Bahasa Arab</option>
-          </select>
-        </div>
-
-        <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Foto Profil</label>
-          <p className="text-xs text-slate-500 mb-3">Ketentuan: Maksimal 500kb, Rasio 3x4, Background Merah, Mengenakan Jas.</p>
-          <input 
-            type="file" 
-            name="photoFile" 
-            accept="image/*"
-            required={!attendee.photoUrl} 
-            className="block w-full text-sm text-slate-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-brand-blue file:text-white
-              hover:file:bg-[#0f172a] transition-all cursor-pointer"
-          />
-          {photoError && <p className="text-red-500 text-sm mt-2">{photoError}</p>}
-          {attendee.photoUrl && <p className="text-sm font-medium text-green-600 mt-2">Foto telah tersimpan, upload baru untuk mengganti.</p>}
-        </div>
-
-        <div className="pt-4 flex justify-end">
-          <button type="submit" className="bg-[#1e3a8a] hover:bg-[#0f172a] text-white px-8 py-2.5 rounded-md font-bold transition-colors shadow-sm">
-            Selanjutnya
+        <div className="pt-6 mt-6 border-t border-slate-100 flex justify-end">
+          <button 
+            type="submit" 
+            className="group relative px-8 py-3 bg-teal-600 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(13,148,136,0.4)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <span className="relative z-10">Lanjut ke Presensi →</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
         </div>
       </form>

@@ -2,18 +2,42 @@
 
 @theme {
   --color-brand-dark: #0f172a;
-  --color-brand-blue: #1e3a8a;
-  --color-brand-gold: #d4af37;
-  --color-brand-light: #f8fafc;
+  --color-brand-blue: #0d9488; /* Changed to an elegant teal (tosca) */
+  --color-brand-gold: #14b8a6; /* Changed to lighter teal */
+  --color-brand-light: #ffffff;
+
+  --animate-fade-in: fade-in 0.6s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  background-color: #fafafa;
 }
 
 /* Custom utility classes */
 @layer components {
   .input-base {
-    @apply w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue;
+    @apply w-full rounded-lg border border-slate-200 px-4 py-3 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/20 transition-all duration-200;
   }
 }

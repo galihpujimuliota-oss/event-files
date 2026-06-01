@@ -17,15 +17,15 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className="text-2xl md:text-3xl font-extrabold text-slate-800 uppercase tracking-tight mb-4 leading-snug"
+          className="text-2xl md:text-3xl font-extrabold text-slate-800 uppercase tracking-tight mb-4 leading-relaxed"
         >
-          Registrasi Kegiatan Yudisium & Pengukuhan<br className="hidden md:block"/> Guru Profesional PPG Daljab Batch 4 Tahun 2025
+          Registrasi Kegiatan Yudisium & Pengukuhan<br className="hidden md:block"/> Guru Profesional PPG Daljab Batch 4 2025
         </motion.h2>
         <motion.span 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.4 }}
-          className="inline-block bg-[#1e3a8a] text-white px-4 py-1.5 rounded-full text-sm font-semibold tracking-wider shadow-sm"
+          className="inline-block bg-teal-50 text-teal-700 border border-teal-200 px-5 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase shadow-sm"
         >
           LPTK UIN Maulana Malik Ibrahim Malang
         </motion.span>
@@ -36,63 +36,73 @@ export default function LandingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-lg text-center md:text-left leading-relaxed"
+          className="text-center text-slate-500 leading-relaxed max-w-3xl mx-auto"
         >
-          Selamat Datang Peserta <strong className="text-slate-800">"Yudisium dan Pengukuhan Guru Profesional bagi Mahasiswa PPG Daljab Batch 4 2025 FITK - LPTK UIN Maulana Malik Ibrahim Malang"</strong> di website yang dikelola oleh Ascent Premiere Hotel and Convention Bersama Prodi PPG untuk registrasi peserta.
+          Selamat Datang Peserta <strong className="text-slate-800 font-semibold">"Yudisium dan Pengukuhan Guru Profesional"</strong> di portal registrasi digital yang dikelola bersama Ascent Premiere Hotel and Convention Malang.
         </motion.p>
 
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4, duration: 0.4 }}
-          className="bg-blue-50 border border-blue-100 rounded-lg p-6 space-y-4 shadow-sm my-8 hover:shadow-md transition-shadow"
+          className="bg-white border border-slate-100 rounded-2xl p-6 md:p-8 space-y-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] my-10 relative overflow-hidden"
         >
-          <h3 className="font-bold text-blue-900 border-b border-blue-200 pb-2 mb-4 flex items-center gap-2">
-            <Info className="w-5 h-5"/> Informasi Acara
+          {/* Subtle decoration inside the box */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50/50 rounded-full blur-3xl -mr-10 -mt-10" />
+
+          <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2 relative z-10">
+            <div className="p-1.5 bg-teal-50 rounded-lg"><Info className="w-4 h-4 text-teal-600"/></div> 
+            Informasi Pelaksanaan
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm relative z-10">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
+                  <Calendar className="w-5 h-5 text-teal-600" />
+                </div>
                 <div>
-                  <p className="font-semibold text-slate-800">Waktu Pelaksanaan</p>
-                  <p>Hari: Kamis<br/>Tanggal: 02 Mei 2026</p>
+                  <p className="font-semibold text-slate-800 mb-1">Waktu Penyelenggaraan</p>
+                  <p className="text-slate-500 leading-snug">Hari: Kamis<br/>Tanggal: 02 Mei 2026</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
+                  <MapPin className="w-5 h-5 text-teal-600" />
+                </div>
                 <div>
-                  <p className="font-semibold text-slate-800">Tempat</p>
-                  <p>Ascent Premiere Hotel and Convention</p>
+                  <p className="font-semibold text-slate-800 mb-1">Lokasi Yudisium</p>
+                  <p className="text-slate-500">Ascent Premiere Hotel and Convention</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <CreditCard className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="space-y-3">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
+                  <CreditCard className="w-5 h-5 text-teal-600" />
+                </div>
+                <div className="space-y-4 w-full">
                   <div>
-                    <span className="font-semibold text-slate-800 block">Biaya Acara (LURING)</span>
-                    <span className="text-lg font-bold text-rose-600">Rp 450.000,00</span>
-                    <p className="text-xs text-slate-500 mt-1">
-                      (Rincian: Hotel Rp 350.000 + Legalisir Rp 100.000)
+                    <span className="font-semibold text-slate-800 block mb-0.5">Biaya (Hadir Luring)</span>
+                    <span className="text-lg font-bold text-teal-600">Rp 450.000,00</span>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      (Hotel Rp 350.000 + Dokumen/Legalisir Rp 100.000)
                     </p>
                   </div>
                   
-                  <div className="bg-white p-3 rounded border border-slate-200">
-                    <p className="text-xs font-semibold text-slate-800 mb-1">Transfer Pembayaran:</p>
-                    <p className="font-mono text-slate-700">🏦 BANK BRI</p>
-                    <p className="font-mono text-slate-700">📛 An. IMAM KHOIRUDDIN</p>
-                    <p className="font-mono font-bold text-slate-900">🔢 612901018729531</p>
+                  <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-100">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Instruksi Pembayaran</p>
+                    <p className="font-mono text-slate-600 text-sm">BANK BRI</p>
+                    <p className="font-mono text-slate-600 text-sm">An. IMAM KHOIRUDDIN</p>
+                    <p className="font-mono font-bold text-slate-800 mt-1">612901018729531</p>
                   </div>
 
                   <div>
-                    <span className="font-semibold text-slate-800 block">Biaya Acara (DARING)</span>
-                    <span className="text-green-600 font-bold">GRATIS  + Rp 100.000</span>
-                    <p className="text-xs text-slate-500 mt-1">
-                      (Tidak Dipungut Biaya + Biaya Legalisir Rp 100.000)
+                    <span className="font-semibold text-slate-800 block mb-0.5">Biaya (Hadir Daring)</span>
+                    <span className="text-slate-800 font-medium">Rp 100.000,00</span>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      (Biaya Dokumen/Legalisir)
                     </p>
                   </div>
                 </div>
@@ -100,9 +110,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded mt-6 text-center">
-            <p className="text-red-700 font-bold text-sm mb-1 uppercase tracking-wider">Batas Akhir Pengisian Form</p>
-            <p className="text-slate-800 font-semibold text-lg">Tanggal 10 Juni 2026, Pukul 16.00 WIB</p>
+          <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100/50 p-4 rounded-xl mt-6 text-center relative z-10 shadow-sm shadow-teal-100/20">
+            <p className="text-teal-700 font-bold text-xs mb-1 uppercase tracking-widest">Batas Akhir Sesi Pendaftaran</p>
+            <p className="text-teal-900 font-medium text-lg">10 Juni 2026 &mdash; 16.00 WIB</p>
           </div>
         </motion.div>
 
@@ -110,13 +120,16 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.4 }}
-          className="flex justify-center mt-10"
+          className="flex justify-center mt-10 pb-6"
         >
           <button 
             onClick={() => navigate('/login')}
-            className="bg-[#1e3a8a] hover:bg-[#0f172a] text-white px-10 py-3.5 rounded-md font-bold shadow-md transform transition-all active:scale-95 text-lg hover:shadow-lg"
+            className="group relative px-8 py-4 bg-teal-600 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(13,148,136,0.4)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
           >
-            Mulai Registrasi
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              Mulai Registrasi <span className="transition-transform group-hover:translate-x-1">→</span>
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
         </motion.div>
       </div>

@@ -1,29 +1,44 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { store, AttendeeData } from '../store/store';
 import { motion } from 'motion/react';
+import { RadioTower, Users, Loader2 } from 'lucide-react';
 
 export default function AttendanceForm() {
   const navigate = useNavigate();
-  const [attendee] = useState<AttendeeData | null>(store.getAttendee());
+  const [attendee, setAttendee] = useState<AttendeeData | null>(null);
+  const [selectedType, setSelectedType] = useState<'DARING' | 'LURING' | ''>('');
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  if (!attendee) {
-    navigate('/login');
-    return null;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const data = store.getAttendee();
+      if (!data || !data.id) {
+        navigate('/login');
+      } else {
+        setAttendee(data);
+        setSelectedType(data.attendanceType || '');
+        setIsLoaded(true);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
+  if (!isLoaded || !attendee) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center bg-white rounded-2xl min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-teal-600 animate-spin mb-4" />
+        <h2 className="text-base text-slate-500 font-medium tracking-tight">Memuat data sesi Anda...</h2>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const attendanceType = formData.get('attendanceType') as 'DARING' | 'LURING';
+    if (!selectedType) return;
 
-    if (attendanceType === 'DARING') {
-      await store.submitFinalRegistration({ attendanceType });
-      navigate('/success');
-    } else {
-      await store.saveAttendee({ attendanceType });
-      navigate('/form-pembayaran');
-    }
+    await store.saveAttendee({ attendanceType: selectedType });
+    navigate('/form-pembayaran');
   };
 
   return (
@@ -34,44 +49,60 @@ export default function AttendanceForm() {
       transition={{ duration: 0.4 }}
       className="p-6 md:p-8"
     >
-      <div className="border-b border-slate-200 pb-4 mb-6">
-        <h2 className="text-xl font-bold text-slate-800">HALAMAN 3: KESEDIAAN HADIR</h2>
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+        <span className="text-teal-600 font-mono text-sm border border-teal-200 bg-teal-50 px-2 py-0.5 rounded-md">STEP_02</span>
+        <h2 className="text-xl font-bold text-slate-800 tracking-tight">Presensi Kehadiran</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-slate-50 p-6 rounded-md border border-slate-200 space-y-4">
-          <label className="block font-semibold text-slate-800 text-lg leading-relaxed">
-            Dengan ini saya menyatakan untuk Hadir dalam acara Yudisium dan Pengukuhan Guru Profesional PPG Daljab Batch 4 Th 2025 FITK-LPTK UIN Maulana Malik Ibrahim Malang secara:
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="space-y-4">
+          <label className="block text-slate-600 leading-relaxed">
+            Menyatakan kesediaan hadir pada Yudisium dan Pengukuhan Guru Profesional secara:
           </label>
           
-          <div className="relative">
-            <select 
-              required 
-              name="attendanceType" 
-              className="w-full text-lg border-2 border-[#1e3a8a] rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent cursor-pointer font-bold text-slate-800 bg-white"
-              defaultValue={attendee.attendanceType || ''}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setSelectedType('DARING')}
+              className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'DARING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
             >
-              <option value="" disabled>-- Pilih Metode Kehadiran --</option>
-              <option value="DARING">1. DARING (Menyimak via Youtube Channel PPG UIN MALANG)</option>
-              <option value="LURING">2. LURING (Hadir di lokasi Hotel Ascent Premiere Malang)</option>
-            </select>
-          </div>
-          
-          <div className="text-sm text-slate-600 space-y-2 pt-2">
-            <p><strong className="text-slate-800">Note:</strong></p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Pilihan <strong>DARING</strong> artinya jawaban langsung disimpan. Biaya: GRATIS + Rp 100.000 (Legalisir).</li>
-              <li>Pilihan <strong>LURING</strong> akan dilanjutkan ke halaman form pembayaran donasi (Rp 450.000).</li>
-            </ul>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 rounded-lg ${selectedType === 'DARING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  <RadioTower className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-slate-800">DARING</span>
+              </div>
+              <p className="text-sm text-slate-500">Live Streaming YouTube</p>
+              <p className="text-xs text-slate-400 mt-2 font-mono">Biaya Surat: Rp 100k</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedType('LURING')}
+              className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'LURING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 rounded-lg ${selectedType === 'LURING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-slate-800">LURING</span>
+              </div>
+              <p className="text-sm text-slate-500">Hadir di Ascent Premiere Hotel</p>
+              <p className="text-xs text-slate-400 mt-2 font-mono">Biaya Total: Rp 450k</p>
+            </button>
           </div>
         </div>
 
-        <div className="pt-4 flex justify-between">
-          <button type="button" onClick={() => navigate('/form-identitas')} className="text-slate-600 hover:text-slate-900 border border-slate-300 px-6 py-2.5 rounded-md font-medium transition-colors">
+        <div className="pt-6 mt-6 border-t border-slate-100 flex justify-between items-center">
+          <button type="button" onClick={() => navigate('/form-identitas')} className="text-slate-500 hover:text-slate-800 font-medium transition-colors px-4 py-2">
             Kembali
           </button>
-          <button type="submit" className="bg-[#1e3a8a] hover:bg-[#0f172a] text-white px-8 py-2.5 rounded-md font-bold transition-colors shadow-sm">
-            Lanjut
+          <button 
+            type="submit" 
+            disabled={!selectedType}
+            className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-teal-600 text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-sm hover:shadow-md"
+          >
+            Lanjut Ke Pembayaran
           </button>
         </div>
       </form>
