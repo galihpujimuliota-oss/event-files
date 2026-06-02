@@ -58,11 +58,19 @@ export const store = {
   
   // NOTE: Keep saveAttendee synchronous for draft session forms
   saveAttendee(data: Partial<AttendeeData>) {
-    const current = this.getAttendee() || { 
-      id: Math.random().toString(36).substring(2, 9),
-      status: 'PENDING',
-      isRegistered: false
-    };
+    let current = this.getAttendee();
+    if (current && current.id && current.id.length < 32) {
+      // Prevent passing non-UUID to Supabase for old local sessions
+      current.id = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+    }
+    
+    if (!current) {
+      current = { 
+        id: crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
+        status: 'PENDING',
+        isRegistered: false
+      };
+    }
     const updated = { ...current, ...data };
     memoryAttendee = updated as AttendeeData;
     try {
