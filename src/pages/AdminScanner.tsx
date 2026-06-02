@@ -36,7 +36,59 @@ export default function AdminScanner() {
     }
   }, [scanResult.status]);
   
-  const [stats, setStats] = useState({ total: 0, daring: 0, luring: 0, verified: 0 });
+  const [selectedAttendee, setSelectedAttendee] = useState<AttendeeData | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<AttendeeData>>({});
+
+  type AdminLog = { id: string; time: string; message: string; };
+  const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('yudisium_admin_logs');
+    if (saved) {
+      try { setAdminLogs(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+
+  const addLog = (message: string) => {
+    const newLog = {
+      id: Date.now().toString() + Math.random(),
+      time: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
+      message
+    };
+    setAdminLogs(prev => {
+      const updated = [newLog, ...prev].slice(0, 50);
+      localStorage.setItem('yudisium_admin_logs', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleEditChange = (key: keyof AttendeeData, value: string) => {
+    setEditForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedAttendee) return;
+    await store.updateAttendeeAdmin(selectedAttendee.id, editForm);
+    setSelectedAttendee({ ...selectedAttendee, ...editForm } as AttendeeData);
+    setIsEditMode(false);
+    updateStats();
+  };
+
+  const handleVerifyPaymentModal = async () => {
+    if (!selectedAttendee) return;
+    await store.verifyAttendeeAdmin(selectedAttendee.id);
+    setSelectedAttendee({ ...selectedAttendee, status: 'VERIFIED' } as AttendeeData);
+    addLog(`Verifikasi berhasil melalui modal untuk: ${selectedAttendee.fullName} (${selectedAttendee.npk})`);
+    updateStats();
+  };
+
+  const getCertMethodText = (method?: string) => {
+    if (method === 'MODEL_1') return 'Model 1: Mandiri';
+    if (method === 'MODEL_2') return 'Model 2: Diwakilkan';
+    if (method === 'MODEL_3') return 'Model 3: Jasa Pengiriman HMPS';
+    return '-';
+  };
   const [attendeesList, setAttendeesList] = useState<AttendeeData[]>([]);
 
   const updateStats = async () => {
@@ -113,9 +165,11 @@ export default function AdminScanner() {
     const verifiedAttendee = await store.verifyAttendeeAdmin(id.trim());
     if (verifiedAttendee) {
       setScanResult({ status: 'SUCCESS', attendee: verifiedAttendee });
+      addLog(`Verifikasi berhasil melalui scan barcode untuk: ${verifiedAttendee.fullName} (${verifiedAttendee.npk})`);
       await updateStats();
     } else {
       setScanResult({ status: 'NOT_FOUND' });
+      addLog(`Gagal scan barcode, ID tidak valid: ${id}`);
     }
     setScanInput('');
   };
@@ -333,6 +387,27 @@ export default function AdminScanner() {
                 </motion.div>
               )}
             </div>
+
+            {/* LOG AKTIVITAS */}
+            <div className="md:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <BellRing className="w-5 h-5 text-teal-600" /> Log Aktivitas Verifikasi
+              </h3>
+              <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
+                {adminLogs.length === 0 ? (
+                  <p className="text-sm text-slate-500 italic text-center py-4">Belum ada aktivitas tercatat.</p>
+                ) : (
+                  adminLogs.map(log => (
+                    <div key={log.id} className="flex justify-between items-start border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">{log.message}</p>
+                        <p className="text-[10px] font-mono text-slate-500 mt-1">{log.time}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -387,13 +462,13 @@ export default function AdminScanner() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest uppercase ${att.status === 'VERIFIED' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
-                            {att.status === 'VERIFIED' && <CheckCircle className="w-3 h-3"/>}
+                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest uppercase ${att.status === 'VERIFIED' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+                            {att.status === 'VERIFIED' ? <CheckCircle className="w-3 h-3"/> : <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>}
                             {att.status}
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button onClick={() => alert('Fitur edit detail dalam pengembangan')} className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors"><Edit className="w-4 h-4"/></button>
+                          <button onClick={() => { setSelectedAttendee(att); setEditForm({}); setIsEditMode(false); }} className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors"><Edit className="w-4 h-4"/></button>
                           <button onClick={() => handleDelete(att.id)} className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-2 rounded-lg transition-colors ml-1"><Trash2 className="w-4 h-4"/></button>
                         </td>
                       </tr>
@@ -530,6 +605,187 @@ export default function AdminScanner() {
               </button>
             </div>
           </motion.div>
+        )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+        {selectedAttendee && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 md:p-6 overflow-y-auto">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]">
+              <div className="p-4 md:p-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">Detail Peserta & Pembayaran</h3>
+                  <p className="text-slate-500 text-xs font-mono mt-0.5 tracking-wider">{selectedAttendee.id}</p>
+                </div>
+                <button onClick={() => setSelectedAttendee(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"><UserX className="w-5 h-5"/></button>
+              </div>
+
+              <div className="p-5 overflow-y-auto bg-slate-50/30 flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* KOLOM KIRI: DATA DIRI */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-bold text-slate-700 text-sm border-b border-slate-200 pb-2 mb-4 flex justify-between items-center">
+                        Data Identitas 
+                        <button onClick={() => { setIsEditMode(!isEditMode); setEditForm(selectedAttendee); }} className="text-xs font-bold text-blue-600 hover:underline">{isEditMode ? 'Batal Edit' : 'Edit Data'}</button>
+                      </h4>
+                      <div className="space-y-3 text-sm">
+                        
+                        <div className="flex flex-col">
+                          <span className="text-xs text-slate-500 font-semibold uppercase">Nama Lengkap</span>
+                          {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.fullName || ''} onChange={e => handleEditChange('fullName', e.target.value)} /> : 
+                          <span className="font-semibold text-slate-800">{selectedAttendee.fullName}</span>}
+                        </div>
+                        
+                        <div className="flex flex-col">
+                          <span className="text-xs text-slate-500 font-semibold uppercase">NPK</span>
+                          {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.npk || ''} onChange={e => handleEditChange('npk', e.target.value)} /> : 
+                          <span className="font-mono text-slate-700">{selectedAttendee.npk}</span>}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-semibold uppercase">Tipe Kehadiran</span>
+                            {isEditMode ? (
+                              <select className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.attendanceType || ''} onChange={e => handleEditChange('attendanceType', e.target.value as any)}>
+                                <option value="LURING">LURING</option>
+                                <option value="DARING">DARING</option>
+                              </select>
+                            ) : <span className={`inline-block px-2 text-xs font-bold leading-6 rounded uppercase mt-0.5 w-fit ${selectedAttendee.attendanceType === 'LURING' ? 'bg-indigo-100 text-indigo-700' : 'bg-teal-100 text-teal-700'}`}>{selectedAttendee.attendanceType}</span>}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-semibold uppercase">Status Scanner</span>
+                            <span className={`inline-block px-2 text-xs font-bold leading-6 rounded uppercase mt-0.5 w-fit ${selectedAttendee.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{selectedAttendee.status}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="text-xs text-slate-500 font-semibold uppercase">Sekolah</span>
+                          {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.schoolName || ''} onChange={e => handleEditChange('schoolName', e.target.value)} /> : 
+                          <span className="text-slate-700">{selectedAttendee.schoolName}</span>}
+                        </div>
+                        
+                        <div className="flex flex-col">
+                          <span className="text-xs text-slate-500 font-semibold uppercase">Bid. Studi</span>
+                          {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.studyField || ''} onChange={e => handleEditChange('studyField', e.target.value)} /> : 
+                          <span className="text-slate-700">{selectedAttendee.studyField}</span>}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-semibold uppercase">Provinsi</span>
+                             {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.province || ''} onChange={e => handleEditChange('province', e.target.value)} /> : <span className="text-slate-700">{selectedAttendee.province}</span>}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-semibold uppercase">Kab/Kota</span>
+                            {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.city || ''} onChange={e => handleEditChange('city', e.target.value)} /> : <span className="text-slate-700">{selectedAttendee.city}</span>}
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col">
+                          <span className="text-xs text-slate-500 font-semibold uppercase">Alamat</span>
+                          {isEditMode ? <textarea className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.address || ''} onChange={e => handleEditChange('address', e.target.value)} rows={2} /> : 
+                          <span className="text-slate-700">{selectedAttendee.address}</span>}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-semibold uppercase">Email</span>
+                            {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.email || ''} onChange={e => handleEditChange('email', e.target.value)} /> : 
+                            <span className="text-slate-700 break-all">{selectedAttendee.email || '-'}</span>}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-semibold uppercase">WhatsApp</span>
+                            {isEditMode ? <input type="text" className="input-base p-2 border border-slate-300 rounded mt-1 text-sm bg-white" value={editForm.phoneWA || ''} onChange={e => handleEditChange('phoneWA', e.target.value)} /> : 
+                            <span className="font-mono text-slate-700">{selectedAttendee.phoneWA}</span>}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KOLOM KANAN: PEMBAYARAN & LAINNYA */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-bold text-slate-700 text-sm border-b border-slate-200 pb-2 mb-4">Informasi Pembayaran</h4>
+                      <div className="space-y-6">
+                        
+                        {(selectedAttendee.attendanceType === 'LURING' || selectedAttendee.paymentHotelProofUrl) && (
+                          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <h5 className="font-bold text-slate-800 text-xs mb-3 uppercase tracking-wider">Hotel (LURING)</h5>
+                            <div className="grid grid-cols-1 gap-2 text-sm text-slate-700 mb-4">
+                              <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">Bank</span>{selectedAttendee.paymentHotelBank || '-'}</p>
+                              <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">No Rekening</span><span className="font-mono">{selectedAttendee.paymentHotelAccountNumber || '-'}</span></p>
+                              <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">Atas Nama</span>{selectedAttendee.paymentHotelAccountName || '-'}</p>
+                            </div>
+                            
+                            {selectedAttendee.paymentHotelProofUrl ? (
+                              <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
+                                <img src={selectedAttendee.paymentHotelProofUrl} alt="Bukti Hotel" className="w-full h-32 object-contain bg-slate-100" />
+                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                  <button onClick={() => window.open(selectedAttendee.paymentHotelProofUrl as string, '_blank')} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                          <h5 className="font-bold text-slate-800 text-xs mb-3 uppercase tracking-wider">Legalisir (Wajib Semua)</h5>
+                          <div className="grid grid-cols-1 gap-2 text-sm text-slate-700 mb-4">
+                            <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">Bank</span>{selectedAttendee.paymentLegalisirBank || '-'}</p>
+                            <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">No Rekening</span><span className="font-mono">{selectedAttendee.paymentLegalisirAccountNumber || '-'}</span></p>
+                            <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">Atas Nama</span>{selectedAttendee.paymentLegalisirAccountName || '-'}</p>
+                          </div>
+                          
+                          {selectedAttendee.paymentLegalisirProofUrl ? (
+                            <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
+                              <img src={selectedAttendee.paymentLegalisirProofUrl} alt="Bukti Legalisir" className="w-full h-32 object-contain bg-slate-100" />
+                              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                <button onClick={() => window.open(selectedAttendee.paymentLegalisirProofUrl as string, '_blank')} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
+                          )}
+                        </div>
+
+                        {selectedAttendee.attendanceType === 'DARING' && (
+                          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-indigo-900 shadow-sm">
+                            <h5 className="font-bold text-indigo-800 text-xs mb-2 uppercase tracking-wider">Pengambilan Serdik</h5>
+                            <p className="text-sm font-semibold">{getCertMethodText(selectedAttendee.certificateRetrievalMethod)}</p>
+                            {selectedAttendee.certificateRetrievalMethod === 'MODEL_3' && (
+                              <p className="text-xs text-indigo-600 mt-2 italic">* Harus mengisi Form HMPS</p>
+                            )}
+                          </div>
+                        )}
+
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+              
+              <div className="p-4 md:p-5 border-t border-slate-200 bg-white flex flex-col sm:flex-row justify-end gap-3 shrink-0">
+                {isEditMode ? (
+                  <button onClick={handleSaveEdit} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm order-1 sm:order-2">Simpan Update</button>
+                ) : (
+                  <>
+                    <button onClick={() => setSelectedAttendee(null)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors order-2 sm:order-1">Tutup</button>
+                    {selectedAttendee.status === 'PENDING' && (
+                      <button onClick={handleVerifyPaymentModal} className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-colors shadow-sm order-1 sm:order-2">
+                        <CheckCircle className="w-4 h-4"/> Setujui / Verifikasi Scanner
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
         )}
         </AnimatePresence>
       </main>

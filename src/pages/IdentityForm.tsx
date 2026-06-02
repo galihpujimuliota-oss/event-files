@@ -9,21 +9,59 @@ export default function IdentityForm() {
   const [attendee, setAttendee] = useState<AttendeeData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  
+  const [npkInput, setNpkInput] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [formKey, setFormKey] = useState(Date.now());
 
   useEffect(() => {
-    // Simulate slight delay or async behavior to show progress indicator
     const timer = setTimeout(() => {
       const data = store.getAttendee();
       if (!data || !data.id) {
         navigate('/login');
       } else {
         setAttendee(data);
+        setNpkInput(data.npk || '');
         setIsLoaded(true);
       }
     }, 400);
 
     return () => clearTimeout(timer);
   }, [navigate]);
+
+  const handleQuickFill = async () => {
+    if (!npkInput) {
+      alert('Masukkan NPK terlebih dahulu untuk mencari data.');
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const all = await store.getAllAttendees();
+      const existing = Object.values(all).find(a => a.npk === npkInput);
+      if (existing) {
+        setAttendee({
+          ...attendee!,
+          fullName: existing.fullName,
+          email: existing.email,
+          address: existing.address,
+          city: existing.city,
+          province: existing.province,
+          schoolName: existing.schoolName,
+          phoneWA: existing.phoneWA,
+          studyField: existing.studyField,
+          npk: existing.npk
+        });
+        setFormKey(Date.now());
+      } else {
+        alert('Data peserta dengan NPK tersebut tidak ditemukan.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Gagal mencari data.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   if (!isLoaded || !attendee) {
     return (
@@ -97,8 +135,33 @@ export default function IdentityForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form key={formKey} onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              No. NPK / Akun Siaga
+            </label>
+            <div className="flex gap-2">
+              <input 
+                required 
+                name="npk" 
+                type="text" 
+                onChange={(e) => { handleNumbers(e); setNpkInput(e.target.value); }} 
+                className="input-base font-mono flex-1" 
+                placeholder="123456789" 
+                defaultValue={attendee?.npk || ''} 
+              />
+              <button 
+                type="button"
+                onClick={handleQuickFill}
+                disabled={isSearching}
+                className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {isSearching ? 'Mencari...' : 'Quick Fill'}
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
               <Mail className="w-4 h-4 text-teal-600" /> Alamat Email
@@ -111,13 +174,6 @@ export default function IdentityForm() {
               <User className="w-4 h-4 text-teal-600" /> Nama Lengkap Sesuai Ijazah
             </label>
             <input required name="fullName" type="text" onChange={handleUppercase} className="input-base" placeholder="ALI RAHMAN" defaultValue={attendee?.fullName || ''} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              No. NPK / Akun Siaga
-            </label>
-            <input required name="npk" type="text" onChange={handleNumbers} className="input-base font-mono" placeholder="123456789" defaultValue={attendee?.npk || ''} />
           </div>
 
           <div>

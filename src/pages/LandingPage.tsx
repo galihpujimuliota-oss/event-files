@@ -83,26 +83,27 @@ export default function LandingPage() {
                   <CreditCard className="w-5 h-5 text-teal-600" />
                 </div>
                 <div className="space-y-4 w-full">
-                  <div>
-                    <span className="font-semibold text-slate-800 block mb-0.5">Biaya (Hadir Luring)</span>
-                    <span className="text-lg font-bold text-teal-600">Rp 450.000,00</span>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      (Hotel Rp 350.000 + Dokumen/Legalisir Rp 100.000)
-                    </p>
-                  </div>
-                  
-                  <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-100">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Instruksi Pembayaran</p>
-                    <p className="font-mono text-slate-600 text-sm">BANK BRI</p>
-                    <p className="font-mono text-slate-600 text-sm">An. IMAM KHOIRUDDIN</p>
-                    <p className="font-mono font-bold text-slate-800 mt-1">612901018729531</p>
-                  </div>
+                  <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-100 space-y-4">
+                    <p className="text-[11px] font-semibold text-teal-600 uppercase tracking-wider mb-2">Instruksi Pembayaran</p>
+                    
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm mb-1">Pembayaran Hotel</p>
+                      <p className="text-xs text-slate-500 mb-1">Silakan transfer sebesar <strong className="text-slate-700">Rp 350.000,00</strong> ke rekening:</p>
+                      <p className="font-mono text-slate-600 text-sm">Bank BRI</p>
+                      <p className="font-mono text-slate-600 text-sm">An. IMAM KHOIRUDDIN</p>
+                      <p className="font-mono font-bold text-slate-800 mt-0.5">612901018729531</p>
+                    </div>
 
-                  <div>
-                    <span className="font-semibold text-slate-800 block mb-0.5">Biaya (Hadir Daring)</span>
-                    <span className="text-slate-800 font-medium">Rp 100.000,00</span>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      (Biaya Dokumen/Legalisir)
+                    <div className="pt-2 border-t border-slate-200">
+                      <p className="font-semibold text-slate-800 text-sm mb-1">Pembayaran Legalisir</p>
+                      <p className="text-xs text-slate-500 mb-1">Silakan transfer sebesar <strong className="text-slate-700">Rp 100.000,00</strong> ke rekening:</p>
+                      <p className="font-mono text-slate-600 text-sm">Bank BRI</p>
+                      <p className="font-mono text-slate-600 text-sm">An. Hariono</p>
+                      <p className="font-mono font-bold text-slate-800 mt-0.5">350501055880533</p>
+                    </div>
+
+                    <p className="text-[10px] text-rose-500 mt-2 bg-rose-50 p-2 rounded italic leading-relaxed">
+                      * Pembayaran terpisah/sendiri-sendiri tidak dijadikan 1. Contoh: hotel bayar sendiri, legalisir bayar sendiri.
                     </p>
                   </div>
                 </div>
