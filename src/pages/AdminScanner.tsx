@@ -660,11 +660,14 @@ export default function AdminScanner() {
               {isSupabaseConnected && stats.total === 0 && (
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 mt-4 text-sm text-amber-800">
                   <span className="font-bold block mb-1">⚠️ Mengapa Data 0 Padahal Terhubung?</span>
-                  <p className="mb-2"><strong>Peringatan Supabase (RLS Disabled):</strong> Jika Supabase memberikan peringatan merah "RLS Disabled in Public", itu karena sebelumnya keamanan baris (RLS) dimatikan.</p>
-                  <p><strong>Solusi:</strong> Untuk menghilangkan pesan peringatan dari Supabase, buka <strong>SQL Editor</strong> di Supabase Anda, copy, dan jalankan kode di bawah ini:</p>
+                  <p className="mb-2"><strong>Peringatan Supabase (RLS Disabled / Gagal Simpan):</strong> Jika Anda masih gagal menyimpan data pendaftaran atau ada error RLS, metode terbaik adalah <strong>mereset ulang tabelnya</strong>.</p>
+                  <p><strong>Solusi (Hard Reset):</strong> Buka <strong>SQL Editor</strong> di Supabase Anda, copy dan jalankan kode di bawah ini. <em>(Catatan: Pastikan Anda belum memiliki data penting, karena ini akan membuat ulang tabel menjadi bersih dari awal)</em></p>
                   <pre className="block bg-amber-100 p-3 mt-2 rounded font-mono text-[10px] sm:text-xs text-amber-900 overflow-x-auto whitespace-pre">
-{`-- 1. Buat tabel jika belum ada
-CREATE TABLE IF NOT EXISTS attendees (
+{`-- 1. HAPUS TABEL LAMA BESERTA ATURANNYA
+DROP TABLE IF EXISTS attendees CASCADE;
+
+-- 2. BUAT ULANG TABEL BERSIH
+CREATE TABLE attendees (
   id uuid PRIMARY KEY,
   email text,
   "fullName" text NOT NULL,
@@ -690,16 +693,8 @@ CREATE TABLE IF NOT EXISTS attendees (
   status text DEFAULT 'PENDING'
 );
 
--- 2. Aktifkan Keamanan (RLS) untuk menghilangkan peringatan
+-- 3. AKTIFKAN KEAMANAN DAN BERIKAN AKSES PENUH
 ALTER TABLE attendees ENABLE ROW LEVEL SECURITY;
-
--- 3. Hapus aturan lama (jika ada) agar tidak error
-DROP POLICY IF EXISTS "Allow public select" ON attendees;
-DROP POLICY IF EXISTS "Allow public insert" ON attendees;
-DROP POLICY IF EXISTS "Allow public update" ON attendees;
-DROP POLICY IF EXISTS "Allow public delete" ON attendees;
-
--- 4. Buat aturan agar aplikasi bisa membaca dan menyimpan
 CREATE POLICY "Allow public select" ON attendees FOR SELECT USING (true);
 CREATE POLICY "Allow public insert" ON attendees FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update" ON attendees FOR UPDATE USING (true);

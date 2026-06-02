@@ -69,7 +69,8 @@ export const store = {
   // NOTE: Keep saveAttendee synchronous for draft session forms
   saveAttendee(data: Partial<AttendeeData>) {
     let current = this.getAttendee();
-    if (current && current.id && current.id.length < 32) {
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(current?.id || '');
+    if (current && current.id && !isValidUUID) {
       // Prevent passing non-UUID to Supabase for old local sessions
       current.id = generateUUID();
     }
@@ -122,12 +123,19 @@ export const store = {
     // 2. Upsert to Supabase if available
     let savedToSupabase = false;
     if (supabase) {
-      try {
-        const { error } = await supabase.from('attendees').upsert([updated]);
-        if (error) console.error('Supabase error:', error);
-        else savedToSupabase = true;
-      } catch (e) {
-        console.error('Supabase exception:', e);
+      const { error } = await supabase.from('attendees').upsert([updated]);
+      if (error) {
+        console.error('Supabase error:', error);
+        
+        let customMessage = "Gagal menyimpan ke Supabase: " + error.message;
+        
+        if (error.message.includes("Invalid path specified in request URL") || error.message.includes("Failed to fetch")) {
+           customMessage = `Error URL Supabase: Pastikan 'VITE_SUPABASE_URL' di menu rahasia (Settings -> API/Secrets) formatnya benar. Contoh yang benar: https://[PROYEK-ID].supabase.co (Jangan ada tambahan /rest/v1 di belakang, dan hapus tanda petik bila ada). Error Asli: ${error.message}`;
+        }
+
+        throw new Error(customMessage);
+      } else {
+        savedToSupabase = true;
       }
     }
 
