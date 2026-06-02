@@ -46,6 +46,8 @@ app.post('/api/attendees', (req, res) => {
   res.json(memoryDb[data.id]);
 });
 
+import nodemailer from 'nodemailer';
+
 // API: Delete attendee
 app.delete('/api/attendees/:id', (req, res) => {
   const { id } = req.params;
@@ -54,6 +56,42 @@ app.delete('/api/attendees/:id', (req, res) => {
     saveDb();
   }
   res.json({ success: true });
+});
+
+// API: Send Registration Email
+app.post('/api/sendemail', async (req, res) => {
+  const { to, subject, html } = req.body;
+  if (!to) return res.status(400).json({ error: 'Missing recipient' });
+
+  // If SMTP is not configured, simulate success
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log(`[SIMULATED MAIL] TO: ${to}\nSUBJECT: ${subject}`);
+    return res.json({ success: true, simulated: true });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT) || 465,
+      secure: true, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: `"Sistem Yudisium" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    });
+    
+    res.json({ success: true, messageId: info.messageId });
+  } catch (error) {
+    console.error('Email error:', error);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
 });
 
 async function startServer() {

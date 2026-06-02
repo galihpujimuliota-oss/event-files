@@ -1,5 +1,15 @@
 import { supabase } from '../lib/supabase';
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export type AttendeeData = {
   id: string;
   email?: string;
@@ -61,12 +71,12 @@ export const store = {
     let current = this.getAttendee();
     if (current && current.id && current.id.length < 32) {
       // Prevent passing non-UUID to Supabase for old local sessions
-      current.id = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+      current.id = generateUUID();
     }
     
     if (!current) {
       current = { 
-        id: crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
+        id: generateUUID(),
         status: 'PENDING',
         isRegistered: false
       };
@@ -133,6 +143,31 @@ export const store = {
         const all = getLocalDb();
         all[updated.id] = updated as AttendeeData;
         setLocalDb(all);
+      }
+    }
+
+    // Attempt to send email
+    if (updated.email) {
+      try {
+        await fetch('/api/sendemail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: updated.email,
+            subject: 'Berhasil: Registrasi Yudisium & Access Pass',
+            html: `<div style="font-family:sans-serif;max-width:500px;margin:auto;padding:20px;border:1px solid #e2e8f0;border-radius:12px;">
+              <h2 style="color:#0d9488;">Registrasi Berhasil</h2>
+              <p>Halo ${updated.fullName},</p>
+              <p>Terima kasih. Anda telah berhasil melakukan registrasi. Berikut ID/NPK Anda:</p>
+              <h3 style="letter-spacing:2px;background:#f8fafc;padding:10px;text-align:center;">${updated.npk}</h3>
+              <p>Tipe Kehadiran: <strong>${updated.attendanceType}</strong></p>
+              <p>Silakan unduh Kartu Access Pass (QR Code) dari halaman Sukses, lalu tunjukkan saat acara berlangsung.</p>
+              <p style="color:#64748b;font-size:12px;margin-top:20px;">Sistem Yudisium - Harap tidak membalas email ini.</p>
+            </div>`
+          })
+        });
+      } catch (e) {
+        console.error('Failed to trigger email send', e);
       }
     }
 
