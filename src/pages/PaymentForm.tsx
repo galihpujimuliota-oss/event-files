@@ -15,20 +15,16 @@ export default function PaymentForm() {
   const [certificateModel, setCertificateModel] = useState<'MODEL_1' | 'MODEL_2' | 'MODEL_3' | undefined>(undefined);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const data = store.getAttendee();
-      if (!data || !data.id) {
-        navigate('/login');
-      } else {
-        setAttendee(data);
-        if (data.certificateRetrievalMethod) {
-          setCertificateModel(data.certificateRetrievalMethod);
-        }
-        setIsLoaded(true);
+    const data = store.getAttendee();
+    if (!data || !data.id) {
+      navigate('/login');
+    } else {
+      setAttendee(data);
+      if (data.certificateRetrievalMethod) {
+        setCertificateModel(data.certificateRetrievalMethod);
       }
-    }, 400);
-
-    return () => clearTimeout(timer);
+      setIsLoaded(true);
+    }
   }, [navigate]);
 
   if (!isLoaded || !attendee) {
@@ -111,13 +107,7 @@ export default function PaymentForm() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.4 }}
-      className="p-6 md:p-8"
-    >
+    <div className="p-6 md:p-8">
       <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
         <span className="text-teal-600 font-mono text-sm border border-teal-200 bg-teal-50 px-2 py-0.5 rounded-md">STEP_03</span>
         <div>
@@ -329,6 +319,6 @@ export default function PaymentForm() {
           </button>
         </div>
       </form>
-    </motion.div>
+    </div>
   );
 }

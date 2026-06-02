@@ -15,18 +15,14 @@ export default function IdentityForm() {
   const [formKey, setFormKey] = useState(Date.now());
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const data = store.getAttendee();
-      if (!data || !data.id) {
-        navigate('/login');
-      } else {
-        setAttendee(data);
-        setNpkInput(data.npk || '');
-        setIsLoaded(true);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
+    const data = store.getAttendee();
+    if (!data || !data.id) {
+      navigate('/login');
+    } else {
+      setAttendee(data);
+      setNpkInput(data.npk || '');
+      setIsLoaded(true);
+    }
   }, [navigate]);
 
   const handleQuickFill = async () => {
@@ -120,13 +116,7 @@ export default function IdentityForm() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.4 }}
-      className="p-6 md:p-8"
-    >
+    <div className="p-6 md:p-8">
       <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
         <span className="text-teal-600 font-mono text-sm border border-teal-200 bg-teal-50 px-2 py-0.5 rounded-md">STEP_01</span>
         <div>
@@ -260,6 +250,6 @@ export default function IdentityForm() {
           </button>
         </div>
       </form>
-    </motion.div>
+    </div>
   );
 }
