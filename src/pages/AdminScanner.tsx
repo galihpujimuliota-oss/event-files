@@ -93,6 +93,8 @@ export default function AdminScanner() {
 
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(!!import.meta.env.VITE_SUPABASE_URL);
 
+  const [stats, setStats] = useState({ total: 0, luring: 0, daring: 0, verified: 0 });
+
   const updateStats = async () => {
     const allDict = await store.getAllAttendees();
     const all = Object.values(allDict).filter(a => a.isRegistered); // Pastikan merekap yang udah register final

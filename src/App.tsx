@@ -21,14 +21,14 @@ export default function App() {
         <Route path="form-kehadiran" element={<AttendanceForm />} />
         <Route path="form-pembayaran" element={<PaymentForm />} />
         <Route path="success" element={<SuccessCard />} />
-        
-        {/* Admin Route */}
-        <Route path="admin-login" element={<AdminLogin />} />
-        <Route path="admin" element={<AdminScanner />} />
-        
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
+
+      {/* Admin Route (Out of Layout) */}
+      <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/admin" element={<AdminScanner />} />
+      
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
