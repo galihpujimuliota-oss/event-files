@@ -21,7 +21,7 @@ export default function AdminScanner() {
     navigate('/admin-login');
   };
 
-  const [activeTab, setActiveTab] = useState<'SCAN' | 'DATA' | 'QR' | 'INFO'>('SCAN');
+  const [activeTab, setActiveTab] = useState<'SCAN' | 'DATA' | 'QR' | 'INFO' | 'SETTINGS'>('SCAN');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
   const [scanInput, setScanInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -280,8 +280,11 @@ export default function AdminScanner() {
           <button onClick={() => setActiveTab('QR')} className={`flex-1 min-w-[50%] md:min-w-0 py-3.5 text-sm font-bold flex justify-center items-center gap-2 transition-colors ${activeTab === 'QR' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
             <QrCode className="w-4 h-4"/> QRs
           </button>
-          <button onClick={() => setActiveTab('INFO')} className={`flex-1 min-w-[50%] md:min-w-0 py-3.5 text-sm font-bold flex justify-center items-center gap-2 transition-colors ${activeTab === 'INFO' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+          <button onClick={() => setActiveTab('INFO')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-sm font-bold flex justify-center items-center gap-2 transition-colors ${activeTab === 'INFO' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
             <BellRing className="w-4 h-4"/> INFO
+          </button>
+          <button onClick={() => setActiveTab('SETTINGS')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-sm font-bold flex justify-center items-center gap-2 transition-colors ${activeTab === 'SETTINGS' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+            <Settings className="w-4 h-4"/> SETTINGS
           </button>
         </div>
 
@@ -612,6 +615,62 @@ export default function AdminScanner() {
               <button onClick={handleSendReminder} className="w-full bg-teal-600 text-white py-3.5 rounded-xl font-bold hover:bg-teal-700 transition-all shadow-[0_8px_20px_-4px_rgba(13,148,136,0.3)] hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2">
                 <BellRing className="w-5 h-5"/> EKSEKUSI BROADCAST
               </button>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'SETTINGS' && (
+          <motion.div key="settings" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="bg-white border border-slate-200 rounded-xl p-6 max-w-2xl shadow-sm mx-auto mt-8">
+            <div className="flex gap-4 items-center mb-6 border-b border-slate-100 pb-6">
+              <div className="w-14 h-14 bg-amber-50 text-amber-600 border border-amber-100 rounded-2xl flex items-center justify-center shrink-0">
+                <Settings className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-lg tracking-tight">Status Cloud Database</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">Pengaturan koneksi Database (Supabase) untuk sinkronisasi data.</p>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-1">Status Koneksi Supabase</p>
+                  {isSupabaseConnected ? (
+                    <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+                      <CheckCircle className="w-5 h-5"/> Terhubung ke Cloud
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-amber-600 font-bold text-sm">
+                      <div className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse"></div>
+                      Database Lokal (Offline)
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-1">Penyimpanan Terakhir</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {stats.total > 0 ? `${stats.total} Data di Sistem` : 'Belum ada data'}
+                  </p>
+                </div>
+              </div>
+
+              {!isSupabaseConnected && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-blue-900 mt-6 shadow-sm">
+                  <h4 className="font-bold mb-2 flex items-center gap-2">Membutuhkan Koneksi Supabase</h4>
+                  <p className="text-sm opacity-90 mb-4">
+                    Saat ini aplikasi menggunakan <strong>Local DB</strong>. Jika perangkat direfresh atau diakses oleh pengguna lain, datanya akan terpisah.
+                    Untuk menyimpan dan menyinkronkan data secara realtime (CLOUD):
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm font-medium">
+                    <li>Buat akun dan project di <strong>Supabase</strong></li>
+                    <li>Buka menu <strong>AI Studio Sidebar &gt; Settings &gt; Variables (Secrets)</strong></li>
+                    <li>Tambahkan <code className="bg-white px-2 py-0.5 rounded text-blue-700 mx-1">VITE_SUPABASE_URL</code></li>
+                    <li>Tambahkan <code className="bg-white px-2 py-0.5 rounded text-blue-700 mx-1">VITE_SUPABASE_ANON_KEY</code></li>
+                    <li>Tunggu beberapa saat, lalu Refresh halaman web ini.</li>
+                  </ol>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
