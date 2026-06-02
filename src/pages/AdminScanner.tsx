@@ -693,7 +693,13 @@ CREATE TABLE IF NOT EXISTS attendees (
 -- 2. Aktifkan Keamanan (RLS) untuk menghilangkan peringatan
 ALTER TABLE attendees ENABLE ROW LEVEL SECURITY;
 
--- 3. Buat aturan agar aplikasi bisa membaca dan menyimpan
+-- 3. Hapus aturan lama (jika ada) agar tidak error
+DROP POLICY IF EXISTS "Allow public select" ON attendees;
+DROP POLICY IF EXISTS "Allow public insert" ON attendees;
+DROP POLICY IF EXISTS "Allow public update" ON attendees;
+DROP POLICY IF EXISTS "Allow public delete" ON attendees;
+
+-- 4. Buat aturan agar aplikasi bisa membaca dan menyimpan
 CREATE POLICY "Allow public select" ON attendees FOR SELECT USING (true);
 CREATE POLICY "Allow public insert" ON attendees FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update" ON attendees FOR UPDATE USING (true);
