@@ -657,6 +657,17 @@ export default function AdminScanner() {
                 </div>
               </div>
 
+              {isSupabaseConnected && stats.total === 0 && (
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 mt-4 text-sm text-amber-800">
+                  <span className="font-bold block mb-1">⚠️ Mengapa Data 0 Padahal Terhubung?</span>
+                  <p className="mb-2">Jika Anda sudah mengisi pendaftaran tapi data di sini kosong (0), hal ini dikarenakan <strong>Row Level Security (RLS)</strong> di database Supabase Anda belum dimatikan, sehingga aplikasi ditolak saat menyimpan data.</p>
+                  <p><strong>Solusi:</strong> Buka Supabase &rarr; SQL Editor, lalu jalankan perintah ini:</p>
+                  <code className="block bg-amber-100 p-2 mt-2 rounded font-mono text-xs text-amber-900 overflow-auto">
+                    ALTER TABLE attendees DISABLE ROW LEVEL SECURITY;
+                  </code>
+                </div>
+              )}
+
               {!isSupabaseConnected && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-blue-900 mt-6 shadow-sm">
                   <h4 className="font-bold mb-2 flex items-center gap-2">Membutuhkan Koneksi Supabase</h4>
