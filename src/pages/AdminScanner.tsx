@@ -660,11 +660,37 @@ export default function AdminScanner() {
               {isSupabaseConnected && stats.total === 0 && (
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 mt-4 text-sm text-amber-800">
                   <span className="font-bold block mb-1">⚠️ Mengapa Data 0 Padahal Terhubung?</span>
-                  <p className="mb-2">Jika Anda sudah mengisi pendaftaran tapi data di sini kosong (0), hal ini dikarenakan <strong>Row Level Security (RLS)</strong> di database Supabase Anda belum dimatikan, sehingga aplikasi ditolak saat menyimpan data.</p>
-                  <p><strong>Solusi:</strong> Buka Supabase &rarr; SQL Editor, lalu jalankan perintah ini:</p>
-                  <code className="block bg-amber-100 p-2 mt-2 rounded font-mono text-xs text-amber-900 overflow-auto">
-                    ALTER TABLE attendees DISABLE ROW LEVEL SECURITY;
-                  </code>
+                  <p className="mb-2">Pesan error <strong>"relation 'attendees' does not exist"</strong> muncul karena tabel penyimpanan belum dibuat di Supabase Anda.</p>
+                  <p><strong>Solusi:</strong> Buka Supabase &rarr; SQL Editor, copy dan jalankan semua kode di bawah ini untuk membuat tabelnya:</p>
+                  <pre className="block bg-amber-100 p-3 mt-2 rounded font-mono text-[10px] sm:text-xs text-amber-900 overflow-x-auto whitespace-pre">
+{`CREATE TABLE IF NOT EXISTS attendees (
+  id uuid PRIMARY KEY,
+  email text,
+  "fullName" text NOT NULL,
+  npk text NOT NULL,
+  address text,
+  city text,
+  province text,
+  "schoolName" text,
+  "phoneWA" text,
+  "studyField" text,
+  "photoUrl" text,
+  "attendanceType" text,
+  "paymentHotelBank" text,
+  "paymentHotelAccountName" text,
+  "paymentHotelAccountNumber" text,
+  "paymentHotelProofUrl" text,
+  "paymentLegalisirBank" text,
+  "paymentLegalisirAccountName" text,
+  "paymentLegalisirAccountNumber" text,
+  "paymentLegalisirProofUrl" text,
+  "certificateRetrievalMethod" text,
+  "isRegistered" boolean DEFAULT false,
+  status text DEFAULT 'PENDING'
+);
+
+ALTER TABLE attendees DISABLE ROW LEVEL SECURITY;`}
+                  </pre>
                 </div>
               )}
 
