@@ -660,10 +660,11 @@ export default function AdminScanner() {
               {isSupabaseConnected && stats.total === 0 && (
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 mt-4 text-sm text-amber-800">
                   <span className="font-bold block mb-1">⚠️ Mengapa Data 0 Padahal Terhubung?</span>
-                  <p className="mb-2">Pesan error <strong>"relation 'attendees' does not exist"</strong> muncul karena tabel penyimpanan belum dibuat di Supabase Anda.</p>
-                  <p><strong>Solusi:</strong> Buka Supabase &rarr; SQL Editor, copy dan jalankan semua kode di bawah ini untuk membuat tabelnya:</p>
+                  <p className="mb-2"><strong>Peringatan Supabase (RLS Disabled):</strong> Jika Supabase memberikan peringatan merah "RLS Disabled in Public", itu karena sebelumnya keamanan baris (RLS) dimatikan.</p>
+                  <p><strong>Solusi:</strong> Untuk menghilangkan pesan peringatan dari Supabase, buka <strong>SQL Editor</strong> di Supabase Anda, copy, dan jalankan kode di bawah ini:</p>
                   <pre className="block bg-amber-100 p-3 mt-2 rounded font-mono text-[10px] sm:text-xs text-amber-900 overflow-x-auto whitespace-pre">
-{`CREATE TABLE IF NOT EXISTS attendees (
+{`-- 1. Buat tabel jika belum ada
+CREATE TABLE IF NOT EXISTS attendees (
   id uuid PRIMARY KEY,
   email text,
   "fullName" text NOT NULL,
@@ -689,7 +690,14 @@ export default function AdminScanner() {
   status text DEFAULT 'PENDING'
 );
 
-ALTER TABLE attendees DISABLE ROW LEVEL SECURITY;`}
+-- 2. Aktifkan Keamanan (RLS) untuk menghilangkan peringatan
+ALTER TABLE attendees ENABLE ROW LEVEL SECURITY;
+
+-- 3. Buat aturan agar aplikasi bisa membaca dan menyimpan
+CREATE POLICY "Allow public select" ON attendees FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON attendees FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update" ON attendees FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                   </pre>
                 </div>
               )}
