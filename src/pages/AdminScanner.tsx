@@ -91,6 +91,8 @@ export default function AdminScanner() {
   };
   const [attendeesList, setAttendeesList] = useState<AttendeeData[]>([]);
 
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(!!import.meta.env.VITE_SUPABASE_URL);
+
   const updateStats = async () => {
     const allDict = await store.getAllAttendees();
     const all = Object.values(allDict).filter(a => a.isRegistered); // Pastikan merekap yang udah register final
@@ -253,9 +255,16 @@ export default function AdminScanner() {
             <QrCode className="w-6 h-6 text-teal-300" />
             <span className="font-bold tracking-widest text-lg">SYS.ADMIN_TERMINAL</span>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-1 bg-teal-800 hover:bg-teal-900 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
+          <div className="flex items-center gap-3">
+            {!isSupabaseConnected && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-100 text-[10px] font-bold px-2 py-1 rounded border border-amber-400/30 uppercase tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Local DB
+              </span>
+            )}
+            <button onClick={handleLogout} className="flex items-center gap-1 bg-teal-800 hover:bg-teal-900 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">
+              <LogOut className="w-4 h-4" /> Logout
+            </button>
+          </div>
         </div>
       </header>
 
