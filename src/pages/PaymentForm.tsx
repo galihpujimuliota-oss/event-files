@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { store, AttendeeData } from '../store/store';
 import { motion } from 'motion/react';
-import { Receipt, Landmark, FileCheck, Loader2 } from 'lucide-react';
+import { Receipt, Landmark, FileCheck, Loader2, ExternalLink } from 'lucide-react';
 
 export default function PaymentForm() {
   const navigate = useNavigate();
@@ -278,9 +278,18 @@ export default function PaymentForm() {
                   <div className="mt-0.5">
                     <input type="radio" name="certificateModel" value="MODEL_3" checked={certificateModel === 'MODEL_3'} onChange={() => setCertificateModel('MODEL_3')} className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-bold text-slate-800 text-sm">Model 3: Jasa Pengiriman oleh HMPS</h4>
-                    <p className="text-sm text-slate-500 mt-1">Mengambil serdik melalui jasa pengiriman oleh HMPS. Jika memilih ini, WAJIB Mengisi google form dari HMPS: <a href="#" className="font-semibold text-indigo-600 hover:underline">(KOSONGI DAHULU)</a></p>
+                    <p className="text-sm text-slate-500 mt-1 mb-2.5">Mengambil serdik melalui jasa pengiriman oleh HMPS. Jika memilih ini, WAJIB Mengisi google form dari HMPS:</p>
+                    <a 
+                      href="https://forms.gle/ibfwFHKbkFvncmZm7" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all focus:ring-2 focus:ring-indigo-500/30 font-sans"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> Formulir Paket Serdik
+                    </a>
                   </div>
                 </div>
               </label>
