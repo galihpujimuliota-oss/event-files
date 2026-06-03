@@ -166,7 +166,7 @@ export default function PaymentForm() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-xl border border-teal-100/60 shadow-sm">
                 <span className="bg-indigo-50 border border-indigo-150 text-indigo-700 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
-                  🏨 1. Pembayaran Hotel
+                  🏨 1. Pembayaran Acara Hotel
                 </span>
                 <p className="text-xs text-slate-500 mt-2">Nominal transfer sebesar:</p>
                 <p className="font-bold text-sm text-slate-800">Rp 350.000,00</p>
@@ -192,10 +192,11 @@ export default function PaymentForm() {
 
               <div className="bg-white p-4 rounded-xl border border-amber-100/60 shadow-sm">
                 <span className="bg-amber-50 border border-amber-150 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1 inline-block">
-                  <Sparkles className="w-2.5 h-2.5" /> 3. Selempang (Opsional)
+                  <Sparkles className="w-2.5 h-2.5" /> 3. Pembayaran Selempang
                 </span>
-                <p className="text-xs text-slate-500 mt-2">Nominal transfer sesuai pesanan:</p>
-                <p className="font-bold text-sm text-slate-800">Selempang Tanpa Nama</p>
+                <p className="text-xs text-slate-500 mt-2">Nominal transfer sebesar:</p>
+                <p className="font-bold text-sm text-slate-800">Rp 60.000,00</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 font-medium">(Selempang Tanpa Nama)</p>
                 <div className="mt-2 text-[11px] font-mono text-slate-600 border-t border-slate-100 pt-2 font-medium">
                   BANK BRI <br/>
                   An. Ramadhan Al Ayubi <br/>
@@ -238,10 +239,11 @@ export default function PaymentForm() {
 
               <div className="bg-white p-4 rounded-xl border border-amber-100/60 shadow-sm">
                 <span className="bg-amber-50 border border-amber-150 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1 inline-block">
-                  <Sparkles className="w-2.5 h-2.5" /> 2. Selempang (Opsional)
+                  <Sparkles className="w-2.5 h-2.5" /> 2. Pembayaran Selempang
                 </span>
-                <p className="text-xs text-slate-500 mt-2">Nominal transfer sesuai pesanan:</p>
-                <p className="font-bold text-sm text-slate-800">Selempang Tanpa Nama</p>
+                <p className="text-xs text-slate-500 mt-2">Nominal transfer sebesar:</p>
+                <p className="font-bold text-sm text-slate-800">Rp 60.000,00</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 font-medium">(Selempang Tanpa Nama)</p>
                 <div className="mt-2 text-[11px] font-mono text-slate-600 border-t border-slate-100 pt-2 pt-2 font-medium">
                   BANK BRI <br/>
                   An. Ramadhan Al Ayubi <br/>
@@ -266,7 +268,7 @@ export default function PaymentForm() {
         {isLuring && (
           <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6">
             <div className="bg-slate-50 px-5 py-3 border-b border-slate-200">
-              <h3 className="font-bold text-slate-700 text-sm">Form Bukti Pembayaran Hotel</h3>
+              <h3 className="font-bold text-slate-700 text-sm">Form Bukti Pembayaran Acara Hotel</h3>
             </div>
             <div className="p-5 space-y-5 bg-white">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -285,7 +287,7 @@ export default function PaymentForm() {
               </div>
               <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100/50">
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
-                  <Receipt className="w-4 h-4 text-teal-600" /> Upload Bukti Hotel
+                  <Receipt className="w-4 h-4 text-teal-600" /> Upload Bukti Acara Hotel
                 </label>
                 <p className="text-xs text-slate-500 mb-3">Maks 1 MB (PNG/JPG).</p>
                 <input type="file" name="hotelProofFile" accept="image/*" required={!attendee?.paymentHotelProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-teal-700 file:border file:border-teal-200 hover:file:bg-teal-50 transition-all cursor-pointer font-sans" />
@@ -357,10 +359,10 @@ export default function PaymentForm() {
                   <Landmark className="w-3.5 h-3.5 text-amber-600" /> Informasi Transfer Pembayaran Selempang
                 </p>
                 <p className="leading-relaxed font-medium text-slate-650">
-                  Silakan lakukan transfer secara terpisah ke rekening penanggung jawab selempang berikut:
+                  Silakan lakukan transfer sebesar <strong className="text-amber-900 font-bold">Rp 60.000,00</strong> secara terpisah ke rekening penanggung jawab selempang berikut:
                 </p>
                 <div className="bg-white/90 p-3 rounded-lg border border-amber-200 inline-block text-[11px] font-mono mt-1 font-semibold text-slate-800">
-                  BANK BRI &mdash; An. Ramadhan Al Ayubi <br/>
+                  BANK BRI &mdash; An. Ramadhan Al Ayubi &mdash; <span className="font-bold text-amber-700">Rp 60.000,00</span> <br/>
                   <span className="text-sm font-extrabold text-amber-700 font-mono tracking-wider">227101000168532</span>
                 </div>
               </div>
