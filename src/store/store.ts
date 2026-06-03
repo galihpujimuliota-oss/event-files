@@ -31,6 +31,11 @@ export type AttendeeData = {
   paymentLegalisirAccountName?: string;
   paymentLegalisirAccountNumber?: string;
   paymentLegalisirProofUrl?: string | null;
+  wantsSash?: boolean;
+  paymentSashBank?: string;
+  paymentSashAccountName?: string;
+  paymentSashAccountNumber?: string;
+  paymentSashProofUrl?: string | null;
   certificateRetrievalMethod?: 'MODEL_1' | 'MODEL_2' | 'MODEL_3';
   isRegistered: boolean;
   status: 'PENDING' | 'VERIFIED';

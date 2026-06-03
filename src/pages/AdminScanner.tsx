@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info } from 'lucide-react';
+import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -229,7 +229,8 @@ export default function AdminScanner() {
   const handleExportCSV = () => {
     const headers = [
       'ID', 'Nama Lengkap', 'NPK', 'Email', 'No HP', 'Sekolah', 'Bid. Studi', 'Provinsi', 'Kota', 'Alamat', 
-      'Tipe Kehadiran', 'Rekening Hotel', 'No Rek. Hotel', 'Bank Hotel', 'Rekening Legalisir', 'No Rek. Legalisir', 'Bank Legalisir', 'Pengambilan Serdik', 'Status'
+      'Tipe Kehadiran', 'Pesan Selempang', 'Rekening Selempang', 'No Rek. Selempang', 'Bank Selempang',
+      'Rekening Hotel', 'No Rek. Hotel', 'Bank Hotel', 'Rekening Legalisir', 'No Rek. Legalisir', 'Bank Legalisir', 'Pengambilan Serdik', 'Status'
     ];
     const rows = attendeesList.map(att => [
       att.id,
@@ -243,6 +244,10 @@ export default function AdminScanner() {
       `"${att.city}"`,
       `"${att.address}"`,
       att.attendanceType || '',
+      att.wantsSash ? 'Ya' : 'Tidak',
+      `"${att.paymentSashAccountName || ''}"`,
+      `'${att.paymentSashAccountNumber || ''}'`,
+      `"${att.paymentSashBank || ''}"`,
       `"${att.paymentHotelAccountName || ''}"`,
       `'${att.paymentHotelAccountNumber || ''}'`,
       `"${att.paymentHotelBank || ''}"`,
@@ -1217,6 +1222,35 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                             </div>
                           ) : (
                             <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
+                          )}
+                        </div>
+
+                        {/* 3. Selempang / Sash Audit Box */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                          <h5 className="font-extrabold text-slate-800 text-xs mb-3 uppercase tracking-wider flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Selempang (Opsional)
+                          </h5>
+                          {selectedAttendee.wantsSash ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 gap-2 text-xs text-slate-700">
+                                <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">Bank Pengirim</span>{selectedAttendee.paymentSashBank || '-'}</p>
+                                <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">No Rekening</span><span className="font-mono">{selectedAttendee.paymentSashAccountNumber || '-'}</span></p>
+                                <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">Atas Nama</span>{selectedAttendee.paymentSashAccountName || '-'}</p>
+                              </div>
+                              
+                              {selectedAttendee.paymentSashProofUrl ? (
+                                <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
+                                  <img src={selectedAttendee.paymentSashProofUrl} alt="Bukti Selempang" className="w-full h-32 object-contain bg-slate-100" />
+                                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                    <button onClick={() => window.open(selectedAttendee.paymentSashProofUrl as string, '_blank')} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="h-20 border border-dashed border-rose-300 rounded-lg flex items-center justify-center text-rose-500 text-xs font-semibold">Bukti Belum Diunggah</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="py-4 text-center text-slate-400 text-xs font-medium italic border border-dashed border-slate-200 rounded-lg">Peserta tidak memesan selempang</div>
                           )}
                         </div>
 
