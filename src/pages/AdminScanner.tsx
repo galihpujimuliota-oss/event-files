@@ -22,6 +22,8 @@ export default function AdminScanner() {
   };
 
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
+  const [rekapTab, setRekapTab] = useState<'DARING' | 'LURING' | 'SASH'>('DARING');
+  const [rekapSearch, setRekapSearch] = useState('');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
   const [scanInput, setScanInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -365,6 +367,89 @@ export default function AdminScanner() {
           const hotelProofCount = attendeesList.filter(a => !!a.paymentHotelProofUrl).length;
           const legalisirProofCount = attendeesList.filter(a => !!a.paymentLegalisirProofUrl).length;
 
+          const listDaring = attendeesList.filter(a => a.attendanceType === 'DARING');
+          const listLuring = attendeesList.filter(a => a.attendanceType === 'LURING');
+          const listSelempang = attendeesList.filter(a => a.wantsSash === true);
+
+          const getFilteredRekapList = () => {
+            let baseList = [];
+            if (rekapTab === 'DARING') baseList = listDaring;
+            else if (rekapTab === 'LURING') baseList = listLuring;
+            else if (rekapTab === 'SASH') baseList = listSelempang;
+
+            if (!rekapSearch.trim()) return baseList;
+            const searchLower = rekapSearch.toLowerCase();
+            return baseList.filter(a => 
+              a.fullName.toLowerCase().includes(searchLower) ||
+              a.npk.includes(searchLower)
+            );
+          };
+
+          const filteredRekap = getFilteredRekapList();
+
+          const handleExportCategoryCSV = (category: 'DARING' | 'LURING' | 'SASH') => {
+            let targetList = [];
+            let catName = '';
+            let headers = ['No', 'Nama Lengkap', 'NPK / Akun Siaga', 'No WhatsApp'];
+
+            if (category === 'DARING') {
+              targetList = listDaring;
+              catName = 'Daring';
+            } else if (category === 'LURING') {
+              targetList = listLuring;
+              catName = 'Luring';
+            } else if (category === 'SASH') {
+              targetList = listSelempang;
+              catName = 'Membayar_Selempang';
+              headers.push('Bank', 'Atas Nama Rekening', 'No Rekening');
+            }
+
+            const rows = targetList.map((att, idx) => {
+              const base = [
+                idx + 1,
+                `"${att.fullName}"`,
+                `'${att.npk}'`,
+                `'${att.phoneWA}'`
+              ];
+              if (category === 'SASH') {
+                base.push(
+                  `"${att.paymentSashBank || ''}"`,
+                  `"${att.paymentSashAccountName || ''}"`,
+                  `'${att.paymentSashAccountNumber || ''}'`
+                );
+              }
+              return base;
+            });
+
+            // Using BOM \uFEFF to make sure Excel opens the CSV correctly with UTF-8 encoding
+            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+              + headers.join(',') + "\n"
+              + rows.map(e => e.join(",")).join("\n");
+              
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Rekap_${catName}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          const copyAllWAOfActiveTab = () => {
+            let targetList = [];
+            if (rekapTab === 'DARING') targetList = listDaring;
+            else if (rekapTab === 'LURING') targetList = listLuring;
+            else if (rekapTab === 'SASH') targetList = listSelempang;
+
+            const waNumbers = targetList.map(a => a.phoneWA).filter(Boolean).join(', ');
+            if (!waNumbers) {
+              alert('Tidak ada nomor WhatsApp untuk disalin');
+              return;
+            }
+            navigator.clipboard.writeText(waNumbers);
+            alert(`Berhasil menyalin ${targetList.length} nomor WhatsApp ke clipboard!`);
+          };
+
           return (
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
               {/* Analytics Header Row */}
@@ -530,6 +615,158 @@ export default function AdminScanner() {
                       <p className="text-base font-extrabold text-teal-400 font-mono mt-0.5">AKTIF</p>
                       <span className="text-[8px] bg-teal-500/10 text-teal-400 border border-teal-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-widest mt-1.5 inline-block">Sinkron</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rekap Kategori Khusus Section */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                      <Table2 className="w-5 h-5 text-teal-600" /> Rekap Data Berdasarkan Kategori
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-1">
+                      Menu rekap instan peserta yang mengikuti Daring, Luring, serta yang memesan & membayar Selempang.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={copyAllWAOfActiveTab}
+                      className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                    >
+                      <Mail className="w-4 h-4 text-slate-500" /> Salin Semua No. WA ({getFilteredRekapList().length})
+                    </button>
+                    <button
+                      onClick={() => handleExportCategoryCSV(rekapTab)}
+                      className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                    >
+                      <Download className="w-4 h-4" /> Ekspor CSV Kategori
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-tabs Selectors */}
+                <div className="flex bg-slate-50 p-1.5 rounded-xl gap-1 border border-slate-100 max-w-fit flex-col sm:flex-row">
+                  <button
+                    onClick={() => { setRekapTab('DARING'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'DARING' ? 'bg-white text-teal-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    📡 PESERTA DARING
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'DARING' ? 'bg-teal-50 text-teal-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listDaring.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setRekapTab('LURING'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'LURING' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    🏢 PESERTA LURING
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'LURING' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listLuring.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setRekapTab('SASH'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'SASH' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    🎓 MEMBAYAR SELEMPANG
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'SASH' ? 'bg-amber-50 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listSelempang.length}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Search Bar for the active category */}
+                <div className="relative max-w-md border border-slate-200 rounded-xl overflow-hidden flex items-center bg-white transition-shadow focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 shadow-sm">
+                  <Search className="w-4 h-4 text-slate-400 ml-4 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder={`Cari nama atau NPK di kategori ${rekapTab === 'DARING' ? 'Daring' : rekapTab === 'LURING' ? 'Luring' : 'Selempang'}...`}
+                    className="w-full px-3 py-2.5 outline-none text-xs placeholder:text-slate-400 font-medium"
+                    value={rekapSearch}
+                    onChange={(e) => setRekapSearch(e.target.value)}
+                  />
+                  {rekapSearch && (
+                    <button onClick={() => setRekapSearch('')} className="absolute right-4 text-xs font-bold text-slate-400 hover:text-slate-600">Batal</button>
+                  )}
+                </div>
+
+                {/* Table for active category */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="max-h-[350px] overflow-y-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-[#0f172a] text-white sticky top-0 z-10 shadow-sm">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 w-12 text-center">No</th>
+                          <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">Nama Lengkap</th>
+                          <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">NPK / Akun Siaga</th>
+                          <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">No. WhatsApp</th>
+                          {rekapTab === 'SASH' && (
+                            <>
+                              <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">Detail Rekening Pengirim</th>
+                              <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">Bukti Bayar</th>
+                            </>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {filteredRekap.map((att, index) => (
+                          <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-4 py-3 text-slate-400 font-mono text-center">{index + 1}</td>
+                            <td className="px-4 py-3 font-bold text-slate-800">{att.fullName}</td>
+                            <td className="px-4 py-3 font-mono text-slate-600">{att.npk}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-slate-600 font-semibold">{att.phoneWA}</span>
+                                <a
+                                  href={`https://wa.me/${att.phoneWA.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-700 hover:text-emerald-800 px-2 py-0.5 bg-emerald-50 rounded hover:bg-emerald-100 transition-colors shrink-0 text-[10px] font-bold border border-emerald-200"
+                                  title="Hubungi via WhatsApp"
+                                >
+                                  Hubungi
+                                </a>
+                              </div>
+                            </td>
+                            {rekapTab === 'SASH' && (
+                              <>
+                                <td className="px-4 py-3 text-slate-600 font-medium">
+                                  {att.paymentSashAccountName ? (
+                                    <span>
+                                      <strong>A.N.</strong> {att.paymentSashAccountName} <br/>
+                                      <span className="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 rounded px-1 py-0.5">{att.paymentSashBank} - {att.paymentSashAccountNumber}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400 font-medium italic">Tidak ada rekening</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {att.paymentSashProofUrl ? (
+                                    <button
+                                      onClick={() => window.open(att.paymentSashProofUrl as string, '_blank')}
+                                      className="text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded text-[10px] font-bold border border-amber-200 transition-colors"
+                                    >
+                                      Lihat PDF/Gambar
+                                    </button>
+                                  ) : (
+                                    <span className="text-rose-500 text-[10px] font-bold">Belum Unggah</span>
+                                  )}
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                        {filteredRekap.length === 0 && (
+                          <tr>
+                            <td colSpan={rekapTab === 'SASH' ? 6 : 4} className="px-5 py-12 text-center text-slate-400 font-medium italic">
+                              Tidak ada data ditemukan untuk pencarian kategori ini.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
