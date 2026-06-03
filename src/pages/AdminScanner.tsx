@@ -22,7 +22,7 @@ export default function AdminScanner() {
   };
 
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
-  const [rekapTab, setRekapTab] = useState<'DARING' | 'LURING' | 'SASH'>('DARING');
+  const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH'>('HOTEL');
   const [rekapSearch, setRekapSearch] = useState('');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
   const [scanInput, setScanInput] = useState('');
@@ -367,14 +367,14 @@ export default function AdminScanner() {
           const hotelProofCount = attendeesList.filter(a => !!a.paymentHotelProofUrl).length;
           const legalisirProofCount = attendeesList.filter(a => !!a.paymentLegalisirProofUrl).length;
 
-          const listDaring = attendeesList.filter(a => a.attendanceType === 'DARING');
-          const listLuring = attendeesList.filter(a => a.attendanceType === 'LURING');
+          const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING');
+          const listLegalisir = attendeesList;
           const listSelempang = attendeesList.filter(a => a.wantsSash === true);
 
           const getFilteredRekapList = () => {
             let baseList = [];
-            if (rekapTab === 'DARING') baseList = listDaring;
-            else if (rekapTab === 'LURING') baseList = listLuring;
+            if (rekapTab === 'HOTEL') baseList = listHotel;
+            else if (rekapTab === 'LEGALISIR') baseList = listLegalisir;
             else if (rekapTab === 'SASH') baseList = listSelempang;
 
             if (!rekapSearch.trim()) return baseList;
@@ -387,38 +387,55 @@ export default function AdminScanner() {
 
           const filteredRekap = getFilteredRekapList();
 
-          const handleExportCategoryCSV = (category: 'DARING' | 'LURING' | 'SASH') => {
+          const handleExportCategoryCSV = (category: 'HOTEL' | 'LEGALISIR' | 'SASH') => {
             let targetList = [];
             let catName = '';
-            let headers = ['No', 'Nama Lengkap', 'NPK / Akun Siaga', 'No WhatsApp'];
+            let headers = ['No', 'Nama Lengkap', 'NPK / Akun Siaga', 'No WhatsApp', 'Bank Rekening Pengirim', 'Atas Nama Rekening Pengirim', 'No Rekening Pengirim', 'URL Bukti Pembayaran'];
 
-            if (category === 'DARING') {
-              targetList = listDaring;
-              catName = 'Daring';
-            } else if (category === 'LURING') {
-              targetList = listLuring;
-              catName = 'Luring';
+            if (category === 'HOTEL') {
+              targetList = listHotel;
+              catName = 'Pembayaran_Acara_Hotel';
+            } else if (category === 'LEGALISIR') {
+              targetList = listLegalisir;
+              catName = 'Pembayaran_Legalisir';
             } else if (category === 'SASH') {
               targetList = listSelempang;
-              catName = 'Membayar_Selempang';
-              headers.push('Bank', 'Atas Nama Rekening', 'No Rekening');
+              catName = 'Pembayaran_Selempang';
             }
 
             const rows = targetList.map((att, idx) => {
-              const base = [
+              let bank = '';
+              let acctName = '';
+              let acctNum = '';
+              let proofUrl = '';
+
+              if (category === 'HOTEL') {
+                bank = att.paymentHotelBank || '';
+                acctName = att.paymentHotelAccountName || '';
+                acctNum = att.paymentHotelAccountNumber || '';
+                proofUrl = att.paymentHotelProofUrl || '';
+              } else if (category === 'LEGALISIR') {
+                bank = att.paymentLegalisirBank || '';
+                acctName = att.paymentLegalisirAccountName || '';
+                acctNum = att.paymentLegalisirAccountNumber || '';
+                proofUrl = att.paymentLegalisirProofUrl || '';
+              } else if (category === 'SASH') {
+                bank = att.paymentSashBank || '';
+                acctName = att.paymentSashAccountName || '';
+                acctNum = att.paymentSashAccountNumber || '';
+                proofUrl = att.paymentSashProofUrl || '';
+              }
+
+              return [
                 idx + 1,
                 `"${att.fullName}"`,
                 `'${att.npk}'`,
-                `'${att.phoneWA}'`
+                `'${att.phoneWA}'`,
+                `"${bank}"`,
+                `"${acctName}"`,
+                `'${acctNum}'`,
+                `"${proofUrl}"`
               ];
-              if (category === 'SASH') {
-                base.push(
-                  `"${att.paymentSashBank || ''}"`,
-                  `"${att.paymentSashAccountName || ''}"`,
-                  `'${att.paymentSashAccountNumber || ''}'`
-                );
-              }
-              return base;
             });
 
             // Using BOM \uFEFF to make sure Excel opens the CSV correctly with UTF-8 encoding
@@ -437,8 +454,8 @@ export default function AdminScanner() {
 
           const copyAllWAOfActiveTab = () => {
             let targetList = [];
-            if (rekapTab === 'DARING') targetList = listDaring;
-            else if (rekapTab === 'LURING') targetList = listLuring;
+            if (rekapTab === 'HOTEL') targetList = listHotel;
+            else if (rekapTab === 'LEGALISIR') targetList = listLegalisir;
             else if (rekapTab === 'SASH') targetList = listSelempang;
 
             const waNumbers = targetList.map(a => a.phoneWA).filter(Boolean).join(', ');
@@ -627,7 +644,7 @@ export default function AdminScanner() {
                       <Table2 className="w-5 h-5 text-teal-600" /> Rekap Data Berdasarkan Kategori
                     </h3>
                     <p className="text-slate-500 text-xs mt-1">
-                      Menu rekap instan peserta yang mengikuti Daring, Luring, serta yang memesan & membayar Selempang.
+                      Menu rekap instan peserta untuk Pembayaran Acara Hotel, Pembayaran Legalisir, serta Pembayaran Selempang.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -649,28 +666,28 @@ export default function AdminScanner() {
                 {/* Sub-tabs Selectors */}
                 <div className="flex bg-slate-50 p-1.5 rounded-xl gap-1 border border-slate-100 max-w-fit flex-col sm:flex-row">
                   <button
-                    onClick={() => { setRekapTab('DARING'); setRekapSearch(''); }}
-                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'DARING' ? 'bg-white text-teal-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                    onClick={() => { setRekapTab('HOTEL'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'HOTEL' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    📡 PESERTA DARING
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'DARING' ? 'bg-teal-50 text-teal-700' : 'bg-slate-200 text-slate-600'}`}>
-                      {listDaring.length}
+                    🏨 PEMBAYARAN HOTEL
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'HOTEL' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listHotel.length}
                     </span>
                   </button>
                   <button
-                    onClick={() => { setRekapTab('LURING'); setRekapSearch(''); }}
-                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'LURING' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                    onClick={() => { setRekapTab('LEGALISIR'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'LEGALISIR' ? 'bg-white text-teal-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    🏢 PESERTA LURING
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'LURING' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
-                      {listLuring.length}
+                    📜 PEMBAYARAN LEGALISIR
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'LEGALISIR' ? 'bg-teal-50 text-teal-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listLegalisir.length}
                     </span>
                   </button>
                   <button
                     onClick={() => { setRekapTab('SASH'); setRekapSearch(''); }}
                     className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'SASH' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    🎓 MEMBAYAR SELEMPANG
+                    🎗️ PEMBAYARAN SELEMPANG
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'SASH' ? 'bg-amber-50 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
                       {listSelempang.length}
                     </span>
@@ -682,13 +699,13 @@ export default function AdminScanner() {
                   <Search className="w-4 h-4 text-slate-400 ml-4 shrink-0" />
                   <input
                     type="text"
-                    placeholder={`Cari nama atau NPK di kategori ${rekapTab === 'DARING' ? 'Daring' : rekapTab === 'LURING' ? 'Luring' : 'Selempang'}...`}
+                    placeholder={`Cari nama atau NPK...`}
                     className="w-full px-3 py-2.5 outline-none text-xs placeholder:text-slate-400 font-medium"
                     value={rekapSearch}
                     onChange={(e) => setRekapSearch(e.target.value)}
                   />
                   {rekapSearch && (
-                    <button onClick={() => setRekapSearch('')} className="absolute right-4 text-xs font-bold text-slate-400 hover:text-slate-600">Batal</button>
+                    <button onClick={() => setRekapSearch('')} className="absolute right-4 text-xs font-bold text-slate-405 hover:text-slate-600">Batal</button>
                   )}
                 </div>
 
@@ -702,118 +719,74 @@ export default function AdminScanner() {
                           <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">Nama Lengkap</th>
                           <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">NPK / Akun Siaga</th>
                           <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">No. WhatsApp</th>
-                          {rekapTab === 'SASH' && (
-                            <>
-                              <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">Detail Rekening Pengirim</th>
-                              <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">Bukti Bayar</th>
-                            </>
-                          )}
+                          <th className="px-4 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">Bukti Pembayaran</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        {filteredRekap.map((att, index) => (
-                          <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-4 py-3 text-slate-400 font-mono text-center">{index + 1}</td>
-                            <td className="px-4 py-3 font-bold text-slate-800">{att.fullName}</td>
-                            <td className="px-4 py-3 font-mono text-slate-600">{att.npk}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-slate-600 font-semibold">{att.phoneWA}</span>
-                                <a
-                                  href={`https://wa.me/${att.phoneWA.replace(/\D/g, '')}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-emerald-700 hover:text-emerald-800 px-2 py-0.5 bg-emerald-50 rounded hover:bg-emerald-100 transition-colors shrink-0 text-[10px] font-bold border border-emerald-200"
-                                  title="Hubungi via WhatsApp"
-                                >
-                                  Hubungi
-                                </a>
-                              </div>
-                            </td>
-                            {rekapTab === 'SASH' && (
-                              <>
-                                <td className="px-4 py-3 text-slate-600 font-medium">
-                                  {att.paymentSashAccountName ? (
-                                    <span>
-                                      <strong>A.N.</strong> {att.paymentSashAccountName} <br/>
-                                      <span className="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 rounded px-1 py-0.5">{att.paymentSashBank} - {att.paymentSashAccountNumber}</span>
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-400 font-medium italic">Tidak ada rekening</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  {att.paymentSashProofUrl ? (
-                                    <button
-                                      onClick={() => window.open(att.paymentSashProofUrl as string, '_blank')}
-                                      className="text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded text-[10px] font-bold border border-amber-200 transition-colors"
-                                    >
-                                      Lihat PDF/Gambar
-                                    </button>
-                                  ) : (
-                                    <span className="text-rose-500 text-[10px] font-bold">Belum Unggah</span>
-                                  )}
-                                </td>
-                              </>
-                            )}
-                          </tr>
-                        ))}
+                        {filteredRekap.map((att, index) => {
+                          let proofUrl = '';
+                          let detailsStr = '';
+                          if (rekapTab === 'HOTEL') {
+                            proofUrl = att.paymentHotelProofUrl || '';
+                            detailsStr = att.paymentHotelAccountName ? `${att.paymentHotelBank} an. ${att.paymentHotelAccountName} (${att.paymentHotelAccountNumber})` : '';
+                          } else if (rekapTab === 'LEGALISIR') {
+                            proofUrl = att.paymentLegalisirProofUrl || '';
+                            detailsStr = att.paymentLegalisirAccountName ? `${att.paymentLegalisirBank} an. ${att.paymentLegalisirAccountName} (${att.paymentLegalisirAccountNumber})` : '';
+                          } else if (rekapTab === 'SASH') {
+                            proofUrl = att.paymentSashProofUrl || '';
+                            detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
+                          }
+
+                          return (
+                            <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="px-4 py-3 text-slate-400 font-mono text-center">{index + 1}</td>
+                              <td className="px-4 py-3">
+                                <div className="font-bold text-slate-800">{att.fullName}</div>
+                                {detailsStr && (
+                                  <div className="text-[10px] text-slate-500 mt-1 font-medium bg-slate-50 border border-slate-100 rounded inline-block px-1.5 py-0.5">
+                                    Pengirim: {detailsStr}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 font-mono text-slate-600 font-semibold">{att.npk}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-slate-600 font-bold">{att.phoneWA}</span>
+                                  <a
+                                    href={`https://wa.me/${att.phoneWA.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-700 hover:text-emerald-800 px-2.5 py-0.5 bg-emerald-50 rounded hover:bg-emerald-100 transition-colors shrink-0 text-[10px] font-bold border border-emerald-205"
+                                    title="Hubungi via WhatsApp"
+                                  >
+                                    Hubungi
+                                  </a>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {proofUrl ? (
+                                  <button
+                                    onClick={() => window.open(proofUrl, '_blank')}
+                                    className="text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-teal-200 transition-colors inline-flex items-center gap-1 shadow-sm shrink-0"
+                                  >
+                                    <Download className="w-3.5 h-3.5" /> Lihat & Unduh Bukti
+                                  </button>
+                                ) : (
+                                  <span className="text-rose-500 text-xs font-bold bg-rose-50 border border-rose-100 px-2.5 py-1 rounded inline-block">Belum Unggah</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                         {filteredRekap.length === 0 && (
                           <tr>
-                            <td colSpan={rekapTab === 'SASH' ? 6 : 4} className="px-5 py-12 text-center text-slate-400 font-medium italic">
+                            <td colSpan={5} className="px-5 py-12 text-center text-slate-400 font-medium italic">
                               Tidak ada data ditemukan untuk pencarian kategori ini.
                             </td>
                           </tr>
                         )}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Concurrency Prep & Hardware Scalability Advice */}
-              <div className="bg-sky-50 border border-sky-100 rounded-2xl p-5 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="bg-sky-500/10 text-sky-800 p-2.5 rounded-xl border border-sky-200">
-                    <Info className="w-5 h-5 text-sky-700" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-sky-900 text-sm">💡 Analisis & Panduan Skalabilitas Sistem: 2,800+ Peserta & 8 Admin Penguji</h4>
-                    <p className="text-xs text-sky-700 leading-relaxed mt-1">
-                      Apakah aplikasi ini kuat menampung pendaftaran berkelompok hingga 2.800+ peserta dengan 8 admin? <strong>JAWABANNYA: YA, SANGAT KUAT DAN AMAN.</strong> Infrastruktur Supabase PostgreSQL ditenagai engine AWS RDS/Aura Cloud berkapasitas tinggi. Namun, silakan laksanakan langkah-langkah persiapan kunci di bawah untuk menjamin nol degradasi jaringan:
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mt-2">
-                  <div className="bg-white p-4 rounded-xl border border-sky-100 space-y-2">
-                    <h5 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-[10px]">1</span>
-                      Supabase Connection Pooling
-                    </h5>
-                    <p className="text-slate-600 leading-relaxed">
-                      Gunakan port <strong>Transaction Mode (Pooler)</strong> di Supabase Anda jika menggunakan server sendiri. Connection Pooler (PgBouncer) akan mendistribusikan query dari 8 admin penguji secara paralel tanpa memakan resource engine SQL raw.
-                    </p>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-xl border border-sky-100 space-y-2">
-                    <h5 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-[10px]">2</span>
-                      Optimasi Indeks PostgreSQL
-                    </h5>
-                    <p className="text-slate-600 leading-relaxed">
-                      Pastikan indeks pada kolom pencarian aktif seperti <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px]">npk</code> dan <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px]">fullName</code> sudah dibuat. Indeks b-tree memastikan pencarian nama peserta dari 2.800 record memakan waktu kurang dari 2 milidetik!
-                    </p>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-xl border border-sky-100 space-y-2">
-                    <h5 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-[10px]">3</span>
-                      Offline First & Sync Button
-                    </h5>
-                    <p className="text-slate-600 leading-relaxed">
-                      Aplikasi ini dilengkapi <strong>Offline Local Memory Sync</strong> di IndexedDB/State. Jika internet di lokasi luring sempat putus-putus, asisten admin dapat terus melakukan verifikasi secara luring, lalu menyinkronkan total data ke Supabase setelah sinyal stabil.
-                    </p>
                   </div>
                 </div>
               </div>

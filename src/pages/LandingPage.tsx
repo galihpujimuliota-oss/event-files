@@ -87,12 +87,15 @@ export default function LandingPage() {
               </div>
 
               {/* Deadline card */}
-              <div className="bg-gradient-to-r from-teal-50 to-emerald-550 border border-teal-100 p-5 rounded-2xl text-left shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-teal-700 mb-1.5">Batas Sesi Pendaftaran</p>
-                <div className="text-slate-900 font-medium text-xs space-y-1 font-sans">
-                  <p>Hari: <strong className="text-teal-950 font-bold">Jumat</strong></p>
-                  <p>Tanggal: <strong className="text-teal-950 font-bold">12 Juni 2026</strong></p>
-                  <p>Pukul: <strong className="text-teal-950 font-bold">16.00 WIB</strong></p>
+              <div className="bg-rose-50/70 border-2 border-rose-200/80 p-5 rounded-2xl text-left shadow-md relative overflow-hidden backdrop-blur-sm">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-rose-100/50 rounded-full blur-2xl -mr-8 -mt-8" />
+                <p className="text-xs font-black uppercase tracking-wider text-rose-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-600 animate-pulse shrink-0" /> Batas Akhir Sesi Registrasi Kegiatan
+                </p>
+                <div className="text-slate-800 font-semibold text-xs space-y-1.5 font-sans relative z-10 pl-6 border-l-2 border-rose-400">
+                  <p>Hari: <strong className="text-rose-900 font-black">Jumat</strong></p>
+                  <p>Tanggal: <strong className="text-rose-900 font-black">12 Juni 2026</strong></p>
+                  <p>Pukul: <strong className="text-rose-900 font-black">16.00 WIB</strong></p>
                 </div>
               </div>
             </div>
@@ -121,12 +124,9 @@ export default function LandingPage() {
                           LURING
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Klik untuk melihat detail rekening transfer</p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Klik untuk pilihan detail rekening & nominal transfer</p>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="text-teal-700 font-extrabold text-xs sm:text-sm font-mono tracking-tight bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-xl font-bold">
-                        Rp 350.000
-                      </span>
                       {activeAccount === 'hotel' ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                     </div>
                   </button>
@@ -142,6 +142,10 @@ export default function LandingPage() {
                       >
                         <div className="p-4 space-y-3">
                           <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">Khusus untuk peserta dengan kehadiran <strong className="text-slate-700">LURING</strong>.</p>
+                          <div className="flex justify-between items-center bg-indigo-50 border border-indigo-120 rounded-xl p-3 text-xs">
+                            <span className="text-slate-600 font-bold font-sans">Nominal Pembayaran:</span>
+                            <span className="text-indigo-700 font-extrabold font-mono text-sm bg-white border border-indigo-200 px-3 py-1 rounded-lg">Rp 350.000</span>
+                          </div>
                           <div className="bg-white border border-slate-200 rounded-xl p-3 flex justify-between items-center gap-3 shadow-inner">
                             <div className="text-xs font-semibold text-slate-700 font-sans">
                               <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider">REKENING BANK BRI</span>
@@ -178,12 +182,9 @@ export default function LandingPage() {
                           SEMUA
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Klik untuk melihat detail rekening transfer</p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Klik untuk pilihan detail rekening & nominal transfer</p>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="text-teal-700 font-extrabold text-xs sm:text-sm font-mono tracking-tight bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-xl font-bold">
-                        Rp 100.000
-                      </span>
                       {activeAccount === 'legalisir' ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                     </div>
                   </button>
@@ -199,6 +200,10 @@ export default function LandingPage() {
                       >
                         <div className="p-4 space-y-3">
                           <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">Wajib dibayar oleh <strong className="text-slate-700">SEMUA PESERTA</strong> (Daring & Luring).</p>
+                          <div className="flex justify-between items-center bg-teal-50 border border-teal-120 rounded-xl p-3 text-xs">
+                            <span className="text-slate-600 font-bold font-sans">Nominal Pembayaran:</span>
+                            <span className="text-teal-700 font-extrabold font-mono text-sm bg-white border border-teal-200 px-3 py-1 rounded-lg">Rp 100.000</span>
+                          </div>
                           <div className="bg-white border border-slate-200 rounded-xl p-3 flex justify-between items-center gap-3 shadow-inner">
                             <div className="text-xs font-semibold text-slate-700 font-sans">
                               <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider">REKENING BANK BRI</span>
@@ -235,12 +240,9 @@ export default function LandingPage() {
                           OPSIONAL
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Klik untuk melihat detail rekening transfer</p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Klik untuk pilihan detail rekening & nominal transfer</p>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="text-amber-850 font-extrabold text-xs sm:text-sm font-mono tracking-tight bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-xl font-bold">
-                        Rp 60.000
-                      </span>
                       {activeAccount === 'selempang' ? <ChevronUp className="w-4 h-4 text-amber-700" /> : <ChevronDown className="w-4 h-4 text-amber-700" />}
                     </div>
                   </button>
@@ -256,6 +258,10 @@ export default function LandingPage() {
                       >
                         <div className="p-4 space-y-3">
                           <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">Tersedia untuk semua peserta <strong className="text-slate-700">DARING & LURING</strong>.</p>
+                          <div className="flex justify-between items-center bg-amber-50 border border-amber-120 rounded-xl p-3 text-xs">
+                            <span className="text-slate-600 font-bold font-sans">Nominal Pembayaran:</span>
+                            <span className="text-amber-700 font-extrabold font-mono text-sm bg-white border border-amber-200 px-3 py-1 rounded-lg">Rp 60.000</span>
+                          </div>
                           <div className="bg-white border border-amber-100 rounded-xl p-3 flex justify-between items-center gap-3 shadow-inner">
                             <div className="text-xs font-semibold text-slate-700 font-sans">
                               <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider">REKENING BANK BRI</span>
