@@ -428,8 +428,8 @@ export default function PaymentForm() {
                     <input type="radio" name="certificateModel" value="MODEL_3" checked={certificateModel === 'MODEL_3'} onChange={() => setCertificateModel('MODEL_3')} className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-bold text-slate-800 text-sm">Model 3: Jasa Pengiriman oleh HMPS</h4>
-                    <p className="text-xs text-slate-500 mt-1 mb-2.5 font-medium">Mengambil serdik melalui jasa pengiriman oleh HMPS. Jika memilih ini, WAJIB Mengisi google form dari HMPS:</p>
+                    <h4 className="font-bold text-slate-800 text-sm">Model 3: Jasa Pengiriman oleh Ikatan Keluarga Alumni (IKA) PPG</h4>
+                    <p className="text-xs text-slate-500 mt-1 mb-2.5 font-medium">Mengambil serdik melalui jasa pengiriman oleh Ikatan Keluarga Alumni (IKA) PPG. Jika memilih ini, WAJIB Mengisi google form dari Ikatan Keluarga Alumni (IKA) PPG:</p>
                     <a 
                       href="https://forms.gle/ibfwFHKbkFvncmZm7" 
                       target="_blank" 

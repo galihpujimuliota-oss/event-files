@@ -89,7 +89,7 @@ export default function AdminScanner() {
   const getCertMethodText = (method?: string) => {
     if (method === 'MODEL_1') return 'Model 1: Mandiri';
     if (method === 'MODEL_2') return 'Model 2: Diwakilkan';
-    if (method === 'MODEL_3') return 'Model 3: Jasa Pengiriman HMPS';
+    if (method === 'MODEL_3') return 'Model 3: Jasa Pengiriman IKA PPG';
     return '-';
   };
   const [attendeesList, setAttendeesList] = useState<AttendeeData[]>([]);
@@ -1259,7 +1259,7 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                             <h5 className="font-bold text-indigo-800 text-xs mb-2 uppercase tracking-wider">Pengambilan Serdik</h5>
                             <p className="text-sm font-semibold">{getCertMethodText(selectedAttendee.certificateRetrievalMethod)}</p>
                             {selectedAttendee.certificateRetrievalMethod === 'MODEL_3' && (
-                              <p className="text-xs text-indigo-600 mt-2 italic">* Harus mengisi Form HMPS</p>
+                              <p className="text-xs text-indigo-600 mt-2 italic">* Harus mengisi Form IKA PPG</p>
                             )}
                           </div>
                         )}
