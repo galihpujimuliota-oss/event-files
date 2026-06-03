@@ -60,6 +60,60 @@ const setLocalDb = (data: Record<string, AttendeeData>) => {
   } catch (e) {}
 };
 
+// Resilient wrapper to write arrays data to Supabase by omitting columns not found in the schema dynamically
+async function safeUpsertSupabaseArray(table: string, payloadArray: any[]) {
+  if (!supabase) return { error: { message: "Supabase not connected" } };
+  const currentArray = payloadArray.map(item => ({ ...item }));
+  let retryCount = 0;
+  const maxRetries = 15;
+  
+  while (retryCount < maxRetries) {
+    const { error } = await supabase.from(table).upsert(currentArray);
+    if (error) {
+      console.warn("Supabase upsert array error:", error);
+      const match = error.message.match(/Could not find the '([^']+)' column/i);
+      if (match && match[1]) {
+        const missingColumn = match[1];
+        console.warn(`[Auto-Clean] Suppressing and deleting missing column '${missingColumn}' from upsert array`);
+        currentArray.forEach(item => {
+          delete item[missingColumn];
+        });
+        retryCount++;
+        continue;
+      }
+      return { error };
+    }
+    return { error: null };
+  }
+  return { error: { message: "Exceeded max retries cleaning non-existent columns from table schema" } };
+}
+
+// Resilient wrapper to update data in Supabase by omitting columns not found in the schema dynamically
+async function safeUpdateSupabase(table: string, id: string, payload: any) {
+  if (!supabase) return { error: { message: "Supabase not connected" }, data: null };
+  const currentPayload = { ...payload };
+  let retryCount = 0;
+  const maxRetries = 15;
+  
+  while (retryCount < maxRetries) {
+    const { error, data } = await supabase.from(table).update(currentPayload).eq('id', id).select().single();
+    if (error) {
+      console.warn("Supabase update error:", error);
+      const match = error.message.match(/Could not find the '([^']+)' column/i);
+      if (match && match[1]) {
+        const missingColumn = match[1];
+        console.warn(`[Auto-Clean] Suppressing and deleting missing column '${missingColumn}' from update payload`);
+        delete currentPayload[missingColumn];
+        retryCount++;
+        continue;
+      }
+      return { error, data: null };
+    }
+    return { error: null, data };
+  }
+  return { error: { message: "Exceeded max retries cleaning non-existent columns from table schema" }, data: null };
+}
+
 export const store = {
   getAttendee(): AttendeeData | null {
     try {
@@ -128,7 +182,7 @@ export const store = {
     // 2. Upsert to Supabase if available
     let savedToSupabase = false;
     if (supabase) {
-      const { error } = await supabase.from('attendees').upsert([updated]);
+      const { error } = await safeUpsertSupabaseArray('attendees', [updated]);
       if (error) {
         console.error('Supabase error:', error);
         
@@ -217,7 +271,7 @@ export const store = {
   async updateAttendeeAdmin(id: string, data: Partial<AttendeeData>) {
     if (supabase) {
       try {
-        const { data: updatedData, error } = await supabase.from('attendees').update(data).eq('id', id).select().single();
+        const { data: updatedData, error } = await safeUpdateSupabase('attendees', id, data);
         if (!error && updatedData) return updatedData as AttendeeData;
       } catch (e) {
         console.error('Supabase exception:', e);
@@ -285,7 +339,7 @@ export const store = {
         return { success: false, message: 'Tidak menemukan data pendaftaran lokal di browser ini untuk disinkronkan.' };
       }
       
-      const { error } = await supabase.from('attendees').upsert(toSync);
+      const { error } = await safeUpsertSupabaseArray('attendees', toSync);
       if (error) {
         throw error;
       }

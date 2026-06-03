@@ -71,7 +71,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <p className="font-bold text-slate-800 text-sm mb-0.5">Waktu Penyelenggaraan</p>
-                    <p className="text-slate-500 text-xs leading-relaxed font-medium">Hari: Kamis<br/>Tanggal: 02 Mei 2026<br/>Pukul 11.00 - 17.00 WIB</p>
+                    <p className="text-slate-500 text-xs leading-relaxed font-medium">Hari: Kamis<br/>Tanggal: 02 JULI 2026<br/>Pukul 11.00 - 17.00 WIB</p>
                   </div>
                 </div>
 

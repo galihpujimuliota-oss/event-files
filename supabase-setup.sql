@@ -23,9 +23,21 @@ CREATE TABLE IF NOT EXISTS attendees (
   "paymentLegalisirAccountNumber" text,
   "paymentLegalisirProofUrl" text,
   "certificateRetrievalMethod" text,
+  "wantsSash" boolean,
+  "paymentSashBank" text,
+  "paymentSashAccountName" text,
+  "paymentSashAccountNumber" text,
+  "paymentSashProofUrl" text,
   "isRegistered" boolean DEFAULT false,
   status text DEFAULT 'PENDING'
 );
+
+-- JIKA TABEL SUDAH ADA, jalankan kode ALTER TABLE di bawah ini di SQL Editor Supabase Anda:
+-- ALTER TABLE attendees ADD COLUMN IF NOT EXISTS "wantsSash" boolean;
+-- ALTER TABLE attendees ADD COLUMN IF NOT EXISTS "paymentSashBank" text;
+-- ALTER TABLE attendees ADD COLUMN IF NOT EXISTS "paymentSashAccountName" text;
+-- ALTER TABLE attendees ADD COLUMN IF NOT EXISTS "paymentSashAccountNumber" text;
+-- ALTER TABLE attendees ADD COLUMN IF NOT EXISTS "paymentSashProofUrl" text;
 
 -- Turn off Row Level Security (RLS) entirely so Vercel can insert/read without auth restrictions.
 -- Alternatively, if you want secure, leave RLS on and create a policy.
