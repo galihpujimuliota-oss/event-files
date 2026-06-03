@@ -174,6 +174,28 @@ export const store = {
     }
     return getLocalDb();
   },
+
+  async getAttendeeById(id: string): Promise<AttendeeData | null> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('attendees').select('*').eq('id', id).single();
+        if (!error && data) return data as AttendeeData;
+      } catch (e) {
+        console.error('Supabase get id exception:', e);
+      }
+    }
+    try {
+      const res = await fetch('/api/attendees/' + id);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    const all = getLocalDb();
+    if (all[id]) return all[id];
+    return null;
+  },
   
   async submitFinalRegistration(data: Partial<AttendeeData>) {
     // 1. Save to local session
@@ -253,15 +275,15 @@ export const store = {
     
     // Fallback
     try {
-      const all = await this.getAllAttendees();
-      if (all[id]) {
-        all[id].status = 'VERIFIED';
+      const full = await this.getAttendeeById(id);
+      if (full) {
+        full.status = 'VERIFIED';
         await fetch('/api/attendees', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(all[id])
+          body: JSON.stringify(full)
         });
-        return all[id];
+        return full;
       }
     } catch(e) {}
     

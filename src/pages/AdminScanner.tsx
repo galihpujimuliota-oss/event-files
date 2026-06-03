@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles } from 'lucide-react';
+import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -44,6 +44,80 @@ export default function AdminScanner() {
   const [selectedAttendee, setSelectedAttendee] = useState<AttendeeData | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForm, setEditForm] = useState<Partial<AttendeeData>>({});
+
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; filename: string } | null>(null);
+
+  const downloadBase64File = (base64Data: string, filename: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = base64Data;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Failed to download file', e);
+      alert('Gagal mengunduh bukti otomatis. Silakan klik kanan gambar lalu pilih Simpan Gambar.');
+    }
+  };
+
+  const handleOpenAttendeeDetail = async (att: AttendeeData) => {
+    setIsLoadingDetail(true);
+    try {
+      const full = await store.getAttendeeById(att.id);
+      if (full) {
+        setSelectedAttendee(full);
+      } else {
+        setSelectedAttendee(att);
+      }
+      setEditForm({});
+      setIsEditMode(false);
+    } catch (e) {
+      console.error(e);
+      setSelectedAttendee(att);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  const handleViewAndDownloadProof = async (id: string, fileType: 'HOTEL' | 'LEGALISIR' | 'SASH') => {
+    setIsLoadingFile(true);
+    try {
+      const full = await store.getAttendeeById(id);
+      if (!full) {
+        alert('Gagal memuat detail peserta.');
+        return;
+      }
+      
+      let base64Url = '';
+      let fileTitle = '';
+      if (fileType === 'HOTEL') {
+        base64Url = full.paymentHotelProofUrl || '';
+        fileTitle = 'Bukti Pembayaran Hotel';
+      } else if (fileType === 'LEGALISIR') {
+        base64Url = full.paymentLegalisirProofUrl || '';
+        fileTitle = 'Bukti Pembayaran Legalisir';
+      } else if (fileType === 'SASH') {
+        base64Url = full.paymentSashProofUrl || '';
+        fileTitle = 'Bukti Pembayaran Selempang';
+      }
+
+      if (!base64Url || base64Url === 'yes') {
+        alert('Foto bukti pembayaran belum diunggah atau kosong.');
+        return;
+      }
+
+      const safeFilename = `${fileTitle.toLowerCase().replace(/\s+/g, '_')}_${full.npk}.jpg`;
+      setLightboxImage({ url: base64Url, title: `${fileTitle} - ${full.fullName} (${full.npk})`, filename: safeFilename });
+    } catch (e) {
+      console.error(e);
+      alert('Terjadi kesalahan saat memproses berkas.');
+    } finally {
+      setIsLoadingFile(false);
+    }
+  };
 
   type AdminLog = { id: string; time: string; message: string; };
   const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
@@ -766,8 +840,9 @@ export default function AdminScanner() {
                               <td className="px-4 py-3 text-center">
                                 {proofUrl ? (
                                   <button
-                                    onClick={() => window.open(proofUrl, '_blank')}
-                                    className="text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-teal-200 transition-colors inline-flex items-center gap-1 shadow-sm shrink-0"
+                                    onClick={() => handleViewAndDownloadProof(att.id, rekapTab)}
+                                    disabled={isLoadingFile}
+                                    className="text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-teal-200 transition-colors inline-flex items-center gap-1 shadow-sm shrink-0"
                                   >
                                     <Download className="w-3.5 h-3.5" /> Lihat & Unduh Bukti
                                   </button>
@@ -964,7 +1039,17 @@ export default function AdminScanner() {
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button onClick={() => { setSelectedAttendee(att); setEditForm({}); setIsEditMode(false); }} className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors"><Edit className="w-4 h-4"/></button>
+                          <button onClick={() => handleOpenAttendeeDetail(att)}
+                            disabled={isLoadingDetail}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 disabled:opacity-50 p-2 rounded-lg transition-colors inline-flex items-center justify-center min-w-[32px] min-h-[32px]"
+                            title="Edit / Detail Peserta"
+                          >
+                            {isLoadingDetail ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-blue-550" />
+                            ) : (
+                              <Edit className="w-4 h-4" />
+                            )}
+                          </button>
                           <button onClick={() => handleDelete(att.id)} className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-2 rounded-lg transition-colors ml-1"><Trash2 className="w-4 h-4"/></button>
                         </td>
                       </tr>
@@ -1406,7 +1491,10 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                               <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
                                 <img src={selectedAttendee.paymentHotelProofUrl} alt="Bukti Hotel" className="w-full h-32 object-contain bg-slate-100" />
                                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                  <button onClick={() => window.open(selectedAttendee.paymentHotelProofUrl as string, '_blank')} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
+                                  <button onClick={() => {
+                                    const filename = `bukti_hotel_${selectedAttendee.npk}.jpg`;
+                                    setLightboxImage({ url: selectedAttendee.paymentHotelProofUrl as string, title: `Bukti Pembayaran Hotel - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
+                                  }} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
                                 </div>
                               </div>
                             ) : (
@@ -1427,7 +1515,10 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                             <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
                               <img src={selectedAttendee.paymentLegalisirProofUrl} alt="Bukti Legalisir" className="w-full h-32 object-contain bg-slate-100" />
                               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                <button onClick={() => window.open(selectedAttendee.paymentLegalisirProofUrl as string, '_blank')} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
+                                 <button onClick={() => {
+                                   const filename = `bukti_legalisir_${selectedAttendee.npk}.jpg`;
+                                   setLightboxImage({ url: selectedAttendee.paymentLegalisirProofUrl as string, title: `Bukti Pembayaran Legalisir - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
+                                 }} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
                               </div>
                             </div>
                           ) : (
@@ -1452,7 +1543,10 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                 <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
                                   <img src={selectedAttendee.paymentSashProofUrl} alt="Bukti Selempang" className="w-full h-32 object-contain bg-slate-100" />
                                   <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                    <button onClick={() => window.open(selectedAttendee.paymentSashProofUrl as string, '_blank')} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
+                                    <button onClick={() => {
+                                      const filename = `bukti_selempang_${selectedAttendee.npk}.jpg`;
+                                      setLightboxImage({ url: selectedAttendee.paymentSashProofUrl as string, title: `Bukti Pembayaran Selempang - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
+                                    }} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
                                   </div>
                                 </div>
                               ) : (
@@ -1498,6 +1592,55 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
             </motion.div>
           </div>
         )}
+        {/* LIGHTBOX / VIEWER MODAL */}
+        <AnimatePresence>
+          {lightboxImage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-slate-950/95"
+            >
+              {/* Header */}
+              <div className="w-full max-w-4xl flex items-center justify-between text-white mb-4 z-10 animate-in fade-in slide-in-from-top-4 duration-200">
+                <div className="flex flex-col">
+                  <h3 className="font-bold text-sm md:text-base tracking-tight">{lightboxImage.title}</h3>
+                  <p className="text-slate-400 text-[10px] md:text-xs">Lihat & simpan pas foto / bukti pembayaran dengan kualitas asli</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => downloadBase64File(lightboxImage.url, lightboxImage.filename)}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-teal-400 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
+                    title="Unduh Berkas Asli"
+                  >
+                    <Download className="w-4 h-4" /> Unduh Berkas
+                  </button>
+                  <button
+                    onClick={() => setLightboxImage(null)}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-200 rounded-lg transition-all"
+                    title="Tutup Preview"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Image View */}
+              <div className="relative w-full max-w-3xl max-h-[75vh] flex items-center justify-center border border-slate-800 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl p-4">
+                <img
+                  src={lightboxImage.url}
+                  alt={lightboxImage.title}
+                  className="max-w-full max-h-[70vh] object-contain rounded animate-in zoom-in-95 duration-200"
+                />
+              </div>
+
+              {/* Footer Guidelines */}
+              <div className="mt-4 text-slate-400 text-center text-[11px] font-medium max-w-md">
+                Klik tombol <span className="text-teal-400 font-bold">Unduh Berkas</span> untuk menyimpan bukti secara langsung. Anda juga dapat klik kanan atau tekan lama gambar untuk menyimpan.
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         </AnimatePresence>
       </main>
     </div>

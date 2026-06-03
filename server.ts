@@ -32,7 +32,28 @@ const saveDb = () => {
 
 // API: Get all attendees
 app.get('/api/attendees', (req, res) => {
-  res.json(memoryDb);
+  const sanitized: Record<string, any> = {};
+  for (const id in memoryDb) {
+    const attendee = memoryDb[id];
+    sanitized[id] = {
+      ...attendee,
+      photoUrl: attendee.photoUrl ? (attendee.photoUrl.startsWith('data:') ? 'yes' : attendee.photoUrl) : null,
+      paymentHotelProofUrl: attendee.paymentHotelProofUrl ? (attendee.paymentHotelProofUrl.startsWith('data:') ? 'yes' : attendee.paymentHotelProofUrl) : null,
+      paymentLegalisirProofUrl: attendee.paymentLegalisirProofUrl ? (attendee.paymentLegalisirProofUrl.startsWith('data:') ? 'yes' : attendee.paymentLegalisirProofUrl) : null,
+      paymentSashProofUrl: attendee.paymentSashProofUrl ? (attendee.paymentSashProofUrl.startsWith('data:') ? 'yes' : attendee.paymentSashProofUrl) : null,
+    };
+  }
+  res.json(sanitized);
+});
+
+// API: Get single attendee with full base64 images
+app.get('/api/attendees/:id', (req, res) => {
+  const { id } = req.params;
+  if (memoryDb[id]) {
+    res.json(memoryDb[id]);
+  } else {
+    res.status(404).json({ error: 'Attendee not found' });
+  }
 });
 
 // API: Upsert attendee
