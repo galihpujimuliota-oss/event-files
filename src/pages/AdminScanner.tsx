@@ -96,6 +96,19 @@ export default function AdminScanner() {
 
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(!!import.meta.env.VITE_SUPABASE_URL);
 
+  const [syncStatus, setSyncStatus] = useState<{ status: 'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'; message?: string }>({ status: 'IDLE' });
+
+  const handleSyncLocalData = async () => {
+    setSyncStatus({ status: 'LOADING' });
+    const result = await store.syncLocalDataToSupabase();
+    if (result.success) {
+      setSyncStatus({ status: 'SUCCESS', message: `Berhasil memindahkan ${result.count} data pendaftaran lokal ke Supabase Cloud!` });
+      updateStats();
+    } else {
+      setSyncStatus({ status: 'ERROR', message: result.message || 'Gagal menyinkronkan data.' });
+    }
+  };
+
   const [stats, setStats] = useState({ total: 0, luring: 0, daring: 0, verified: 0 });
 
   const updateStats = async () => {
@@ -711,6 +724,38 @@ export default function AdminScanner() {
                   </p>
                 </div>
               </div>
+
+              {isSupabaseConnected && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mt-4">
+                  <h4 className="font-bold text-slate-800 text-sm mb-1.5 flex items-center gap-2">
+                    🔌 Pindahkan Data Lokal ke Supabase Cloud
+                  </h4>
+                  <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                    Jika Anda sebelumnya sudah memiliki data pendaftaran (dari ujicoba luring/daring) yang tersimpan secara lokal di browser ini, dan sekarang setelah mereset tabel di Supabase data tersebut menjadi 0, silakan klik tombol di bawah ini untuk <strong>mengunggah dan menyinkronkan ulang</strong> semua data tersebut ke database Supabase Cloud Anda secara instan:
+                  </p>
+                  
+                  {syncStatus.status === 'SUCCESS' && (
+                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg text-xs font-semibold mb-3">
+                      {syncStatus.message}
+                    </div>
+                  )}
+
+                  {syncStatus.status === 'ERROR' && (
+                    <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-lg text-xs font-semibold mb-3">
+                      {syncStatus.message}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSyncLocalData}
+                    disabled={syncStatus.status === 'LOADING'}
+                    className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+                  >
+                    {syncStatus.status === 'LOADING' ? 'Sedang Sinkronisasi...' : '🔄 Sinkronisasikan Data ke Cloud'}
+                  </button>
+                </div>
+              )}
 
               {isSupabaseConnected && stats.total === 0 && (
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 mt-4 text-sm text-amber-800">

@@ -253,6 +253,45 @@ export const store = {
     return false;
   },
   
+  async syncLocalDataToSupabase() {
+    if (!supabase) return { success: false, message: 'Supabase tidak terhubung/tidak dikonfigurasi' };
+    
+    try {
+      const localDb = getLocalDb();
+      const currentAttendee = this.getAttendee();
+      
+      const toSync: AttendeeData[] = [];
+      
+      // Ambil data dari local database
+      Object.values(localDb).forEach(item => {
+        if (item && item.isRegistered) {
+          toSync.push(item);
+        }
+      });
+      
+      // Ambil data dari sesi pendaftaran aktif jika ada dan sudah register
+      if (currentAttendee && currentAttendee.isRegistered) {
+        if (!toSync.some(item => item.id === currentAttendee.id)) {
+          toSync.push(currentAttendee);
+        }
+      }
+      
+      if (toSync.length === 0) {
+        return { success: false, message: 'Tidak menemukan data pendaftaran lokal di browser ini untuk disinkronkan.' };
+      }
+      
+      const { error } = await supabase.from('attendees').upsert(toSync);
+      if (error) {
+        throw error;
+      }
+      
+      return { success: true, count: toSync.length };
+    } catch (e: any) {
+      console.error('Failed to sync local data:', e);
+      return { success: false, message: e.message || 'Gagal melakukan sinkronisasi ke server.' };
+    }
+  },
+  
   clear() {
     memoryAttendee = null;
     try {
