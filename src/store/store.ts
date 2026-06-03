@@ -63,29 +63,42 @@ const setLocalDb = (data: Record<string, AttendeeData>) => {
 // Resilient wrapper to write arrays data to Supabase by omitting columns not found in the schema dynamically
 async function safeUpsertSupabaseArray(table: string, payloadArray: any[]) {
   if (!supabase) return { error: { message: "Supabase not connected" } };
-  const currentArray = payloadArray.map(item => ({ ...item }));
-  let retryCount = 0;
-  const maxRetries = 15;
-  
-  while (retryCount < maxRetries) {
-    const { error } = await supabase.from(table).upsert(currentArray);
-    if (error) {
-      console.warn("Supabase upsert array error:", error);
-      const match = error.message.match(/Could not find the '([^']+)' column/i);
-      if (match && match[1]) {
-        const missingColumn = match[1];
-        console.warn(`[Auto-Clean] Suppressing and deleting missing column '${missingColumn}' from upsert array`);
-        currentArray.forEach(item => {
-          delete item[missingColumn];
-        });
-        retryCount++;
-        continue;
+  const CHUNK_SIZE = 50; // Use small chunks since each item might have ~300KB in base64 images
+  let finalError = null;
+
+  for (let i = 0; i < payloadArray.length; i += CHUNK_SIZE) {
+    const chunkArray = payloadArray.slice(i, i + CHUNK_SIZE).map(item => ({ ...item }));
+    let retryCount = 0;
+    const maxRetries = 15;
+    let chunkSuccess = false;
+
+    while (retryCount < maxRetries) {
+      const { error } = await supabase.from(table).upsert(chunkArray);
+      if (error) {
+        console.warn(`Supabase upsert array error (chunk ${i}):`, error);
+        const match = error.message.match(/Could not find the '([^']+)' column/i);
+        if (match && match[1]) {
+          const missingColumn = match[1];
+          console.warn(`[Auto-Clean] Suppressing missing column '${missingColumn}'`);
+          chunkArray.forEach(item => {
+            delete item[missingColumn];
+          });
+          retryCount++;
+          continue;
+        }
+        finalError = error;
+        break; // Other error, exit loop
+      } else {
+        chunkSuccess = true;
+        break;
       }
-      return { error };
     }
-    return { error: null };
+    
+    if (finalError) break; // If a chunk critically failed, stop processing altogether
   }
-  return { error: { message: "Exceeded max retries cleaning non-existent columns from table schema" } };
+  
+  if (finalError) return { error: finalError };
+  return { error: null };
 }
 
 // Resilient wrapper to update data in Supabase by omitting columns not found in the schema dynamically
@@ -152,10 +165,26 @@ export const store = {
   async getAllAttendees(): Promise<Record<string, AttendeeData>> {
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('attendees').select('*');
+        // Exclude bulk base64 image data from the initial mass-load to prevent browser OOM and slow load times.
+        // We fetch the image individually via getAttendeeById instead.
+        const { data, error } = await supabase.from('attendees').select(`
+          id, email, fullName, npk, address, city, province, schoolName, phoneWA, studyField,
+          attendanceType, wantsSash, certificateRetrievalMethod, isRegistered, status,
+          paymentHotelBank, paymentHotelAccountName, paymentHotelAccountNumber,
+          paymentLegalisirBank, paymentLegalisirAccountName, paymentLegalisirAccountNumber,
+          paymentSashBank, paymentSashAccountName, paymentSashAccountNumber
+        `);
         if (!error && data) {
           const dict: Record<string, AttendeeData> = {};
-          for (const item of data) { dict[item.id] = item; }
+          for (const item of data) {
+             const att = item as any;
+             // Polyfill properties so that AdminScanner can still count them
+             if (att.paymentHotelBank) att.paymentHotelProofUrl = 'yes';
+             if (att.paymentLegalisirBank) att.paymentLegalisirProofUrl = 'yes';
+             if (att.paymentSashBank) att.paymentSashProofUrl = 'yes';
+             if (att.fullName) att.photoUrl = 'yes'; // best approximation without url for list view
+             dict[item.id] = att;
+          }
           return dict;
         }
       } catch (e) {
@@ -301,15 +330,15 @@ export const store = {
     }
     
     try {
-      const all = await this.getAllAttendees();
-      if (all[id]) {
-        all[id] = { ...all[id], ...data } as AttendeeData;
+      const full = await this.getAttendeeById(id);
+      if (full) {
+        const updated = { ...full, ...data } as AttendeeData;
         await fetch('/api/attendees', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(all[id])
+          body: JSON.stringify(updated)
         });
-        return all[id];
+        return updated;
       }
     } catch (e) {}
     
