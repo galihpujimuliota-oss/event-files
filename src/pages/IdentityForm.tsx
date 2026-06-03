@@ -10,6 +10,7 @@ export default function IdentityForm() {
   const [attendee, setAttendee] = useState<AttendeeData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   
   const [npkInput, setNpkInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -91,6 +92,64 @@ export default function IdentityForm() {
     );
   }
 
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingPhoto(true);
+    setPhotoError('');
+
+    try {
+      const compBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            const MAX_DIM = 800;
+            if (width > MAX_DIM || height > MAX_DIM) {
+              if (width > height) {
+                height = Math.round((height * MAX_DIM) / width);
+                width = MAX_DIM;
+              } else {
+                width = Math.round((width * MAX_DIM) / height);
+                height = MAX_DIM;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              // Compress to JPEG with 0.75 quality (extremely light & fast)
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+              resolve(dataUrl);
+            } else {
+              resolve(event.target?.result as string);
+            }
+          };
+          img.onerror = () => reject(new Error('Format file gambar tidak valid.'));
+          img.src = event.target?.result as string;
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+        reader.readAsDataURL(file);
+      });
+
+      // Update state immediately so they see the live crop / preview!
+      setAttendee(prev => prev ? { ...prev, photoUrl: compBase64 } : null);
+      setPhotoError('');
+    } catch (err: any) {
+      console.error(err);
+      setPhotoError(err.message || 'Gagal memproses gambar.');
+    } finally {
+      setIsProcessingPhoto(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -113,25 +172,8 @@ export default function IdentityForm() {
       schoolName: (formData.get('schoolName') as string || '').toUpperCase().trim(),
       phoneWA: (formData.get('phoneWA') as string || '').trim(),
       studyField: (formData.get('studyField') as string || attendee?.studyField || allowed.studyField || '').trim(),
+      photoUrl: attendee?.photoUrl || null
     };
-
-    const photoFile = formData.get('photoFile') as File;
-    if (photoFile && photoFile.size > 0) {
-      if (photoFile.size > 500 * 1024) {
-        setPhotoError('Ukuran file maksimal 500KB');
-        return;
-      }
-      setPhotoError('');
-      // Mock File Upload directly converting to base64 for local dev
-      const reader = new FileReader();
-      reader.onload = async () => {
-        data.photoUrl = reader.result as string;
-        await store.saveAttendee(data);
-        navigate('/form-kehadiran');
-      };
-      reader.readAsDataURL(photoFile);
-      return;
-    }
 
     await store.saveAttendee(data);
     navigate('/form-kehadiran');
@@ -338,28 +380,62 @@ export default function IdentityForm() {
           </div>
         </div>
 
-        <div className="bg-teal-50/50 p-5 rounded-2xl border border-teal-100/50 relative overflow-hidden mt-8">
-          <div className="absolute -right-6 -bottom-6 opacity-10"><Camera className="w-32 h-32 text-teal-600" /></div>
-          <div className="relative z-10">
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-1">
-              <Camera className="w-4 h-4 text-teal-600" /> Pas Foto Resmi
-            </label>
-            <p className="text-xs text-slate-500 mb-4 font-medium tracking-wide">Maksimal 500kb. Latar Biru/Merah. Kemeja/Jas. Rasio 3x4.</p>
-            <input 
-              type="file" 
-              name="photoFile" 
-              accept="image/*"
-              required={!attendee?.photoUrl} 
-              disabled={!isVerified}
-              className="block w-full text-sm text-slate-500
-                file:mr-4 file:py-2.5 file:px-5
-                file:rounded-lg file:border-0
-                file:text-xs file:font-semibold file:tracking-wider file:uppercase
-                file:bg-white file:text-teal-700 file:border file:border-teal-200
-                hover:file:bg-teal-50 transition-all cursor-pointer disabled:opacity-50"
-            />
-            {photoError ? <p className="text-rose-500 text-sm mt-3 font-medium flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 block"></span>{photoError}</p> : null}
-            {attendee?.photoUrl ? <p className="text-sm font-medium text-teal-600 mt-3 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-teal-500 block"></span>Image verification passed.</p> : null}
+        <div className="bg-teal-50/50 p-5 rounded-2xl border border-teal-100/50 mt-8">
+          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+            
+            {/* Live Photo Preview Frame */}
+            <div className="relative shrink-0 w-24 h-32 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shadow-sm">
+              {isProcessingPhoto ? (
+                <div className="absolute inset-0 bg-slate-100/80 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-teal-600 animate-spin" />
+                </div>
+              ) : attendee?.photoUrl ? (
+                <img 
+                  src={attendee.photoUrl} 
+                  alt="Review Pas Foto" 
+                  className="w-full h-full object-cover animate-in fade-in duration-300" 
+                />
+              ) : (
+                <Camera className="w-8 h-8 text-slate-300" />
+              )}
+            </div>
+
+            <div className="flex-1">
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-1">
+                <Camera className="w-4 h-4 text-teal-600" /> Pas Foto Resmi
+              </label>
+              <p className="text-xs text-slate-500 mb-4 font-medium tracking-wide">Latar Biru/Merah. Kemeja/Jas rapi. File asli akan otomatis dikompres ke ukuran optimal (<span className="text-teal-600 font-bold">&lt; 100KB</span>).</p>
+              
+              <input 
+                type="file" 
+                name="photoFile" 
+                accept="image/*"
+                onChange={handlePhotoChange}
+                required={!attendee?.photoUrl} 
+                disabled={!isVerified || isProcessingPhoto}
+                className="block w-full text-sm text-slate-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-xs file:font-bold file:tracking-wider file:uppercase
+                  file:bg-white file:text-teal-700 file:border file:border-teal-200
+                  hover:file:bg-teal-50 transition-all cursor-pointer disabled:opacity-50"
+              />
+              
+              {photoError ? (
+                <p className="text-rose-500 text-xs mt-2.5 font-semibold flex items-center gap-1.5 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  {photoError}
+                </p>
+              ) : null}
+              
+              {attendee?.photoUrl && !isProcessingPhoto ? (
+                <p className="text-emerald-700 text-xs mt-2.5 font-bold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Foto berhasil diunggah & dikompres secara optimal!
+                </p>
+              ) : null}
+            </div>
+            
           </div>
         </div>
 
