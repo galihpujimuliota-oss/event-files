@@ -73,9 +73,9 @@ export default function PaymentForm() {
 
     try {
       if (isLuring) {
-        data.paymentHotelAccountName = (formData.get('paymentHotelAccountName') as string).toUpperCase();
-        data.paymentHotelAccountNumber = (formData.get('paymentHotelAccountNumber') as string).toUpperCase();
-        data.paymentHotelBank = (formData.get('paymentHotelBank') as string).toUpperCase();
+        data.paymentHotelAccountName = (formData.get('paymentHotelAccountName') as string || '').toUpperCase().trim();
+        data.paymentHotelAccountNumber = (formData.get('paymentHotelAccountNumber') as string || '').toUpperCase().trim();
+        data.paymentHotelBank = (formData.get('paymentHotelBank') as string || '').toUpperCase().trim();
         
         const hotelFile = formData.get('hotelProofFile') as File;
         if (hotelFile && hotelFile.size > 0) {
@@ -87,9 +87,9 @@ export default function PaymentForm() {
       }
 
       // Legalisir details (both Daring and Luring)
-      data.paymentLegalisirAccountName = (formData.get('paymentLegalisirAccountName') as string).toUpperCase();
-      data.paymentLegalisirAccountNumber = (formData.get('paymentLegalisirAccountNumber') as string).toUpperCase();
-      data.paymentLegalisirBank = (formData.get('paymentLegalisirBank') as string).toUpperCase();
+      data.paymentLegalisirAccountName = (formData.get('paymentLegalisirAccountName') as string || '').toUpperCase().trim();
+      data.paymentLegalisirAccountNumber = (formData.get('paymentLegalisirAccountNumber') as string || '').toUpperCase().trim();
+      data.paymentLegalisirBank = (formData.get('paymentLegalisirBank') as string || '').toUpperCase().trim();
 
       const legalisirFile = formData.get('legalisirProofFile') as File;
       if (legalisirFile && legalisirFile.size > 0) {
@@ -102,9 +102,9 @@ export default function PaymentForm() {
       // Sash details (optional, both Daring and Luring)
       data.wantsSash = wantsSash;
       if (wantsSash) {
-        data.paymentSashAccountName = (formData.get('paymentSashAccountName') as string).toUpperCase();
-        data.paymentSashAccountNumber = (formData.get('paymentSashAccountNumber') as string).toUpperCase();
-        data.paymentSashBank = (formData.get('paymentSashBank') as string).toUpperCase();
+        data.paymentSashAccountName = (formData.get('paymentSashAccountName') as string || '').toUpperCase().trim();
+        data.paymentSashAccountNumber = (formData.get('paymentSashAccountNumber') as string || '').toUpperCase().trim();
+        data.paymentSashBank = (formData.get('paymentSashBank') as string || '').toUpperCase().trim();
 
         const sashFile = formData.get('sashProofFile') as File;
         if (sashFile && sashFile.size > 0) {

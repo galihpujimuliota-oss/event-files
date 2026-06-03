@@ -94,7 +94,7 @@ export default function IdentityForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const npkVal = formData.get('npk') as string;
+    const npkVal = formData.get('npk') as string || npkInput;
 
     const allowed = getAllowedAttendee(npkVal);
     if (!allowed) {
@@ -102,17 +102,17 @@ export default function IdentityForm() {
       return;
     }
     
-    // Convert form to object and handle specific constraints
+    // Convert form to object and handle specific constraints safely with fallbacks
     const data: Partial<AttendeeData> = {
-      email: formData.get('email') as string,
-      fullName: (formData.get('fullName') as string).toUpperCase(),
-      npk: npkVal,
-      address: (formData.get('address') as string).toUpperCase(),
-      city: (formData.get('city') as string).toUpperCase(),
-      province: (formData.get('province') as string).toUpperCase(),
-      schoolName: (formData.get('schoolName') as string).toUpperCase(),
-      phoneWA: formData.get('phoneWA') as string,
-      studyField: formData.get('studyField') as string,
+      email: (formData.get('email') as string || '').trim(),
+      fullName: (formData.get('fullName') as string || attendee?.fullName || allowed.fullName || '').toUpperCase().trim(),
+      npk: npkVal.trim(),
+      address: (formData.get('address') as string || '').toUpperCase().trim(),
+      city: (formData.get('city') as string || '').toUpperCase().trim(),
+      province: (formData.get('province') as string || '').toUpperCase().trim(),
+      schoolName: (formData.get('schoolName') as string || '').toUpperCase().trim(),
+      phoneWA: (formData.get('phoneWA') as string || '').trim(),
+      studyField: (formData.get('studyField') as string || attendee?.studyField || allowed.studyField || '').trim(),
     };
 
     const photoFile = formData.get('photoFile') as File;
@@ -229,11 +229,10 @@ export default function IdentityForm() {
               required 
               name="fullName" 
               type="text" 
-              onChange={handleUppercase} 
-              disabled={true} // Terkunci otomatis dari database resmi agar 100% akurat
-              className="input-base disabled:bg-slate-100 disabled:text-slate-700 disabled:border-slate-200 font-bold" 
+              readOnly={true} // Terkunci otomatis dari database resmi agar 100% akurat
+              className="input-base bg-slate-100 text-slate-700 border-slate-200 font-bold cursor-not-allowed" 
               placeholder="Selesaikan pengecekan NPK..." 
-              defaultValue={attendee?.fullName || ''} 
+              value={attendee?.fullName || ''} 
             />
           </div>
 
@@ -322,8 +321,9 @@ export default function IdentityForm() {
               required 
               name="studyField" 
               disabled={true} // Terkunci otomatis dari database resmi agar 100% akurat
-              className="input-base bg-white disabled:bg-slate-100 disabled:text-slate-700 disabled:border-slate-200 font-bold" 
-              defaultValue={attendee?.studyField || ''}
+              className="input-base bg-slate-100 text-slate-700 border-slate-200 font-bold" 
+              value={attendee?.studyField || ''}
+              onChange={() => {}} // React controlled element warning suppressor
             >
               <option value="" disabled>Pilih Bidang Studi...</option>
               <option value="Pendidikan Agama Islam (Dinas)">Pendidikan Agama Islam (Dinas)</option>
