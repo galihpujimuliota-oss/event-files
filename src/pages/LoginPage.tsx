@@ -1,15 +1,81 @@
 import { useNavigate } from 'react-router-dom';
-import { Fingerprint, ScanEye, ShieldCheck } from 'lucide-react';
+import { Fingerprint, ScanEye, ShieldCheck, HelpCircle, Activity } from 'lucide-react';
 import { store } from '../store/store';
+import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'mock' | 'real'>('mock');
+  const [authError, setAuthError] = useState('');
 
-  const handleLogin = async () => {
+  useEffect(() => {
+    // Check if there is an active Supabase user session (OAuth landing)
+    const checkSession = async () => {
+      if (supabase) {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error("Auth session check error:", error);
+            return;
+          }
+          if (session?.user) {
+            setIsConnecting(true);
+            store.clear();
+            const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+            const email = session.user.email || '';
+            await store.saveAttendee({
+              id: session.user.id,
+              fullName: fullName,
+              email: email,
+              isRegistered: false
+            });
+            setTimeout(() => {
+              navigate('/form-identitas');
+            }, 1500);
+          }
+        } catch (err: any) {
+          console.error("Gagal memproses sesi Supabase:", err);
+          setAuthError(err.message);
+        }
+      }
+    };
+
+    // Listen to real-time auth changes
+    let authListener: any = null;
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          setIsConnecting(true);
+          store.clear();
+          const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+          const email = session.user.email || '';
+          await store.saveAttendee({
+            id: session.user.id,
+            fullName: fullName,
+            email: email,
+            isRegistered: false
+          });
+          setTimeout(() => {
+            navigate('/form-identitas');
+          }, 1500);
+        }
+      });
+      authListener = subscription;
+    }
+
+    checkSession();
+
+    return () => {
+      if (authListener) authListener.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleMockLogin = async () => {
     setIsConnecting(true);
+    setAuthError('');
     // Simulate connection delay for the animation
     setTimeout(async () => {
       store.clear();
@@ -21,12 +87,36 @@ export default function LoginPage() {
     }, 2500);
   };
 
+  const handleRealLogin = async () => {
+    if (!supabase) {
+      setAuthError('Koneksi Supabase belum terkonfigurasi di file env.');
+      return;
+    }
+    setIsConnecting(true);
+    setAuthError('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/login'
+        }
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error(err);
+      setAuthError("Gagal menginisiasi Google Auth: " + err.message + ". Pastikan Google provider telah diaktifkan di dashboard Supabase Anda.");
+      setIsConnecting(false);
+    }
+  };
+
+  const isSupabaseConnected = !!supabase;
+
   return (
     <motion.div 
       initial={{ opacity: 0, filter: 'blur(4px)' }}
       animate={{ opacity: 1, filter: 'blur(0px)' }}
       transition={{ duration: 0.5 }}
-      className="p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] relative"
+      className="p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] relative animate-fade-in"
     >
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-50 via-white to-white opacity-60 pointer-events-none" />
       
@@ -74,22 +164,36 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-            {isConnecting ? 'Authenticating...' : 'Access Terminal'}
-          </h2>
-          <p className="text-slate-500 mt-2 text-sm leading-relaxed">
-            {isConnecting 
-              ? 'Connecting securely to Google Workspace...' 
-              : 'Verify your identity to proceed with the registration form securely.'
-            }
-          </p>
+          <AnimatePresence mode="wait">
+            {isConnecting && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4"
+              >
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight animate-pulse">
+                  Authenticating...
+                </h2>
+                <p className="text-slate-500 mt-1 text-xs sm:text-sm">
+                  Menghubungkan secara aman ke Google Workspace...
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="space-y-4">
+        {authError && (
+          <div className="bg-rose-50 text-rose-700 p-3.5 rounded-xl border border-rose-200 text-xs text-left animate-shake leading-relaxed">
+            <strong>Gagal:</strong> {authError}
+          </div>
+        )}
+
+        <div className="space-y-4 pt-2">
           <button
-            onClick={handleLogin}
+            onClick={handleMockLogin}
             disabled={isConnecting}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl p-3.5 text-slate-700 font-medium hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl p-4 text-slate-700 font-semibold hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden animate-fade-in"
           >
             {isConnecting && (
               <motion.div 
@@ -105,15 +209,8 @@ export default function LoginPage() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            <span className="relative z-10">{isConnecting ? 'Authenticating...' : 'Authenticate via Google'}</span>
+            <span className="relative z-10">{isConnecting ? 'Menghubungkan...' : 'Masuk via Google'}</span>
           </button>
-          
-          <div className="bg-amber-50/50 p-4 border border-amber-200/50 rounded-xl text-left">
-            <p className="text-xs font-medium text-amber-800 leading-relaxed">
-              <strong className="block mb-1">Status Integrasi:</strong>
-              Saat ini sistem menggunakan antarmuka simulasi koneksi Google (Mock) untuk keperluan preview awal/desain. Untuk terhubung sepenuhnya dengan Google (Real Auth), dibutuhkan konfigurasi Firebase/Supabase di tahap deployment.
-            </p>
-          </div>
         </div>
       </div>
     </motion.div>

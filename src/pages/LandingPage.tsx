@@ -17,18 +17,13 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className="text-2xl md:text-3xl font-extrabold text-slate-800 uppercase tracking-tight mb-4 leading-relaxed"
+          className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight mb-4 leading-relaxed whitespace-pre-line"
         >
-          Registrasi Kegiatan Yudisium & Pengukuhan<br className="hidden md:block"/> Guru Profesional PPG Daljab Batch 4 2025
+          Registrasi Kegiatan{"\n"}
+          Yudisium & Pengukuhan Guru Profesional{"\n"}
+          PPG Dalam Jabatan Batch 4 Tahun 2025{"\n"}
+          FITK - LPTK UIN Maulana Malik Ibrahim Malang
         </motion.h2>
-        <motion.span 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="inline-block bg-teal-50 text-teal-700 border border-teal-200 px-5 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase shadow-sm"
-        >
-          LPTK UIN Maulana Malik Ibrahim Malang
-        </motion.span>
       </div>
 
       <div className="prose max-w-none text-slate-600 space-y-6">
