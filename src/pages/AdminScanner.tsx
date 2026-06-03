@@ -26,6 +26,9 @@ export default function AdminScanner() {
   const [scanInput, setScanInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const isScanningRef = useRef(true);
+
+  const [broadcastSubject, setBroadcastSubject] = useState('Pengingat: Yudisium & Pengukuhan Guru Profesional PPG Dalam Jabatan Batch 4 Tahun 2025');
+  const [broadcastBody, setBroadcastBody] = useState(`Yth. Bapak/Bapak/Ibu Peserta,\n\nBerikut adalah instruksi acara Yudisium & Pengukuhan Guru Profesional PPG Dalam Jabatan Batch 4 Tahun 2025 FITK - LPTK UIN Maulana Malik Ibrahim Malang:\n\n📅 Hari/Tanggal: \n⏰ Waktu:\n📍 Tempat:\n📹 Link Streaming: http://\n\nHarap hadir tepat waktu dan membawa Access Pass QR Code Anda.\n\nTerima kasih.\nPanitia`);
   
   // reset scanning state when result changes back to IDLE
   useEffect(() => {
@@ -201,8 +204,8 @@ export default function AdminScanner() {
       return;
     }
 
-    const subject = encodeURIComponent('Pengingat: Yudisium & Pengukuhan Guru Profesional PPG Daljab FITK UIN Malang');
-    const body = encodeURIComponent(`Yth. Bapak/Ibu Peserta Yudisium,\n\nIni adalah pengingat untuk kegiatan Yudisium & Pengukuhan Guru Profesional PPG Daljab FITK UIN Malang.\n\nTerima kasih.\nPanitia`);
+    const subject = encodeURIComponent(broadcastSubject);
+    const body = encodeURIComponent(broadcastBody);
     
     // Open email client with bcc to hide emails from everyone
     window.location.href = `mailto:?bcc=${emails}&subject=${subject}&body=${body}`;
@@ -592,7 +595,7 @@ export default function AdminScanner() {
 
         {activeTab === 'INFO' && (
           <motion.div key="info" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="bg-white border border-slate-200 rounded-xl p-6 max-w-2xl shadow-sm mx-auto mt-8">
-            <div className="flex gap-4 items-center mb-8">
+            <div className="flex gap-4 items-center mb-6">
               <div className="w-14 h-14 bg-teal-50 text-teal-600 border border-teal-100 rounded-2xl flex items-center justify-center shrink-0">
                 <Mail className="w-7 h-7" />
               </div>
@@ -603,19 +606,71 @@ export default function AdminScanner() {
             </div>
             
             <div className="space-y-6">
-              <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-100 space-y-3">
+              <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-100 space-y-4">
                 <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Target Audience</p>
                 <p className="text-sm font-semibold text-teal-700 bg-teal-50 px-3 py-1.5 rounded-lg inline-block border border-teal-100">{stats.total} Peserta (Terdaftar Final)</p>
                 
-                <div className="pt-2"></div>
-                <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Subjek Template</p>
-                <div className="text-sm bg-white p-3 font-medium text-slate-800 border-2 border-slate-100 rounded-lg shadow-sm">
-                  Pengingat: Yudisium & Pengukuhan Guru Profesional PPG Daljab FITK UIN Malang
+                <div className="border-t border-slate-100 pt-3">
+                  <p className="text-xs font-bold text-slate-500 tracking-wider uppercase mb-2">Pilih Cepat Template Pesan:</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setBroadcastSubject('Pengingat: Yudisium & Pengukuhan Guru Profesional PPG Daljab FITK UIN Malang');
+                        setBroadcastBody(`Yth. Bapak/Ibu Peserta Yudisium,\n\nIni adalah pengingat untuk kegiatan Yudisium & Pengukuhan Guru Profesional PPG Daljab FITK UIN Malang.\n\nHarap pastikan Anda datang tepat waktu dan membawa QR Code Access Pass Anda untuk verifikasi presensi di pintu masuk.\n\nTerima kasih.\nPanitia`);
+                      }}
+                      className="text-xs bg-white text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-teal-500 hover:text-teal-600 font-medium transition-all shadow-sm"
+                    >
+                      🔔 Pengingat Jadwal
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setBroadcastSubject('Link Streaming: Yudisium & Pengukuhan Guru Profesional PPG Daljab FITK UIN Malang');
+                        setBroadcastBody(`Yth. Bapak/Ibu Peserta Yudisium,\n\nBagi Bapak/Ibu yang mengikuti kegiatan secara daring (online), berikut adalah informasi link streaming resmi:\n\n📹 Link Live Streaming: https://youtube.com/live/link-streaming-disini\n🔑 Room Meeting ID & Passcode (jika ada):\n\nSilakan bersiap bergabung 30 menit sebelum acara formal dimulai.\n\nTerima kasih.\nPanitia`);
+                      }}
+                      className="text-xs bg-white text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-teal-500 hover:text-teal-600 font-medium transition-all shadow-sm"
+                    >
+                      📹 Link Streaming
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setBroadcastSubject('Instruksi & Tata Tertib Acara Yudisium PPG FITK UIN Malang');
+                        setBroadcastBody(`Yth. Bapak/Ibu Peserta Yudisium,\n\nBerikut adalah beberapa instruksi penting terkait pelaksanaan Yudisium:\n\n1. Harap menggunakan busana formal nasional yang rapi dan sopan sesuai ketentuan LPTK.\n2. Tunjukkan QR Code Access Pass Anda pada petugas di lokasi acara.\n3. Harap tertib mengikuti jalannya acara dari awal hingga selesai.\n\nTerima kasih atas kerjasamanya.\nPanitia`);
+                      }}
+                      className="text-xs bg-white text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-teal-500 hover:text-teal-600 font-medium transition-all shadow-sm"
+                    >
+                      📋 Instruksi Acara
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="block text-xs font-bold text-slate-500 tracking-wide uppercase mb-1.5">Subjek Email (Dapat Diedit)</label>
+                  <input 
+                    type="text" 
+                    value={broadcastSubject}
+                    onChange={(e) => setBroadcastSubject(e.target.value)}
+                    placeholder="Contoh: Pengingat Jadwal Yudisium..."
+                    className="w-full text-sm bg-white p-3 font-semibold text-slate-800 border-2 border-slate-100 rounded-lg shadow-sm focus:border-teal-500 focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div className="pt-1">
+                  <label className="block text-xs font-bold text-slate-500 tracking-wide uppercase mb-1.5">Isi Pesan Email (Dapat Diedit)</label>
+                  <textarea 
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    rows={8}
+                    placeholder="Tulis pesan atau instruksi Anda di sini..."
+                    className="w-full text-sm bg-white p-3 font-medium text-slate-800 border-2 border-slate-100 rounded-lg shadow-sm focus:border-teal-500 focus:outline-none transition-all leading-relaxed font-sans"
+                  />
                 </div>
               </div>
               
               <button onClick={handleSendReminder} className="w-full bg-teal-600 text-white py-3.5 rounded-xl font-bold hover:bg-teal-700 transition-all shadow-[0_8px_20px_-4px_rgba(13,148,136,0.3)] hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2">
-                <BellRing className="w-5 h-5"/> EKSEKUSI BROADCAST
+                <BellRing className="w-5 h-5"/> EKSEKUSI BROADCAST EMAIL
               </button>
             </div>
           </motion.div>
