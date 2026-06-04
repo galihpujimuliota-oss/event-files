@@ -311,29 +311,27 @@ export const store = {
       }
     }
 
-    // Attempt to send email
+    // Attempt to send email (non-blocking fire-and-forget)
     if (updated.email) {
-      try {
-        await fetch('/api/sendemail', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: updated.email,
-            subject: 'Berhasil: Registrasi Yudisium & Access Pass',
-            html: `<div style="font-family:sans-serif;max-width:500px;margin:auto;padding:20px;border:1px solid #e2e8f0;border-radius:12px;">
-              <h2 style="color:#0d9488;">Registrasi Berhasil</h2>
-              <p>Halo ${updated.fullName},</p>
-              <p>Terima kasih. Anda telah berhasil melakukan registrasi. Berikut ID/NPK Anda:</p>
-              <h3 style="letter-spacing:2px;background:#f8fafc;padding:10px;text-align:center;">${updated.npk}</h3>
-              <p>Tipe Kehadiran: <strong>${updated.attendanceType}</strong></p>
-              <p>Silakan unduh Kartu Access Pass (QR Code) dari halaman Sukses, lalu tunjukkan saat acara berlangsung.</p>
-              <p style="color:#64748b;font-size:12px;margin-top:20px;">Sistem Yudisium - Harap tidak membalas email ini.</p>
-            </div>`
-          })
-        });
-      } catch (e) {
-        console.error('Failed to trigger email send', e);
-      }
+      fetch('/api/sendemail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: updated.email,
+          subject: 'Berhasil: Registrasi Yudisium & Access Pass',
+          html: `<div style="font-family:sans-serif;max-width:500px;margin:auto;padding:20px;border:1px solid #e2e8f0;border-radius:12px;">
+            <h2 style="color:#0d9488;">Registrasi Berhasil</h2>
+            <p>Halo ${updated.fullName},</p>
+            <p>Terima kasih. Anda telah berhasil melakukan registrasi. Berikut ID/NPK Anda:</p>
+            <h3 style="letter-spacing:2px;background:#f8fafc;padding:10px;text-align:center;">${updated.npk}</h3>
+            <p>Tipe Kehadiran: <strong>${updated.attendanceType}</strong></p>
+            <p>Silakan unduh Kartu Access Pass (QR Code) dari halaman Sukses, lalu tunjukkan saat acara berlangsung.</p>
+            <p style="color:#64748b;font-size:12px;margin-top:20px;">Sistem Yudisium - Harap tidak membalas email ini.</p>
+          </div>`
+        })
+      }).catch(e => {
+        console.error('Failed to trigger email send in background:', e);
+      });
     }
 
     return updated;

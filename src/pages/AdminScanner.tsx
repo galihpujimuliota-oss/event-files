@@ -785,37 +785,8 @@ export default function AdminScanner() {
                   </div>
                 </div>
 
-                {/* 4. Live Server Monitor Panel (Scalability Indicator) */}
-                <div className="bg-slate-950 border border-slate-800 text-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-                  <h4 className="font-bold text-teal-400 text-sm flex items-center gap-2 pb-1 border-b border-slate-800">
-                    <Cpu className="w-4 h-4 animate-spin text-teal-400" style={{ animationDuration: '4s' }} /> Live System Concurrency Simulator
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Estimasi performa sistem database terpusat (Supabase Postgres) ketika menampung beban simulasi <strong>2800+ Peserta</strong> simultan dengan <strong>8 Admin</strong>:
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 text-center">
-                    <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">KONEKSI POOL SQL</p>
-                      <p className="text-base font-extrabold text-teal-400 font-mono mt-0.5">8 / 100 <span className="text-[10px] text-teal-500 font-normal">Active</span></p>
-                      <span className="text-[8px] bg-teal-500/10 text-teal-400 border border-teal-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-widest mt-1.5 inline-block">SANGAT SEHAT</span>
-                    </div>
-                    <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">LATENCY DATABASE</p>
-                      <p className="text-base font-extrabold text-emerald-400 font-mono mt-0.5">~64ms <span className="text-[10px] text-emerald-500 font-normal">Avg</span></p>
-                      <span className="text-[8px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-widest mt-1.5 inline-block">OPTIMAL</span>
-                    </div>
-                    <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">CONCURRENT WRITES</p>
-                      <p className="text-base font-extrabold text-indigo-400 font-mono mt-0.5">80 <span className="text-[10px] text-indigo-500 font-normal">req/s</span></p>
-                      <span className="text-[8px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-widest mt-1.5 inline-block">AMAN (BUFFERED)</span>
-                    </div>
-                    <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">LOCAL INDEX SYNC</p>
-                      <p className="text-base font-extrabold text-teal-400 font-mono mt-0.5">AKTIF</p>
-                      <span className="text-[8px] bg-teal-500/10 text-teal-400 border border-teal-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-widest mt-1.5 inline-block">Sinkron</span>
-                    </div>
-                  </div>
-                </div>
+                {/* 4. Live Server Monitor Panel (Scalability Indicator) removed as it was simulated UI */}
+                
               </div>
 
               {/* Rekap Kategori Khusus Section */}

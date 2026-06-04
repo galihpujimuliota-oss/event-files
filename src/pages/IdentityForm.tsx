@@ -15,6 +15,7 @@ export default function IdentityForm() {
   const [npkInput, setNpkInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
   const [formKey, setFormKey] = useState(Date.now());
 
   useEffect(() => {
@@ -25,8 +26,13 @@ export default function IdentityForm() {
       setAttendee(data);
       const initialNpk = data.npk || '';
       setNpkInput(initialNpk);
-      if (initialNpk && getAllowedAttendee(initialNpk)) {
+      if (initialNpk) {
         setIsVerified(true);
+        if (getAllowedAttendee(initialNpk)) {
+          setIsManualEntry(false);
+        } else {
+          setIsManualEntry(true);
+        }
       }
       setIsLoaded(true);
     }
@@ -42,8 +48,49 @@ export default function IdentityForm() {
 
     const allowed = getAllowedAttendee(cleaned);
     if (!allowed) {
-      alert('Pemberitahuan: Data yang Anda inputkan salah, isikan dengan benar.');
-      setIsVerified(false);
+      const confirmManual = window.confirm(
+        'NPK/Nomor Siaga Anda tidak terdaftar dalam verifikasi database cepat.\n\nApakah Anda ingin mengisikan biodata pendaftaran Yudisium Anda secara mandiri?'
+      );
+      if (confirmManual) {
+        setIsSearching(true);
+        try {
+          const all = await store.getAllAttendees();
+          const existing = Object.values(all).find(a => a.npk === cleaned);
+          
+          setAttendee({
+            ...attendee!,
+            fullName: existing?.fullName || attendee?.fullName || '',
+            studyField: existing?.studyField || attendee?.studyField || '',
+            npk: cleaned,
+            email: existing?.email || attendee?.email || '',
+            address: existing?.address || attendee?.address || '',
+            city: existing?.city || attendee?.city || '',
+            province: existing?.province || attendee?.province || '',
+            schoolName: existing?.schoolName || attendee?.schoolName || '',
+            phoneWA: existing?.phoneWA || attendee?.phoneWA || ''
+          });
+          setIsVerified(true);
+          setIsManualEntry(true);
+          setFormKey(Date.now());
+          alert('Input Mandiri: Silakan ketik Nama Lengkap Anda dan pilih Bidang Studi Sertifikasi Anda di bawah.');
+        } catch (e) {
+          console.error(e);
+          setAttendee({
+            ...attendee!,
+            fullName: '',
+            studyField: '',
+            npk: cleaned
+          });
+          setIsVerified(true);
+          setIsManualEntry(true);
+          setFormKey(Date.now());
+          alert('Input Mandiri: Silakan ketik Nama Lengkap Anda dan pilih Bidang Studi Sertifikasi Anda di bawah.');
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setIsVerified(false);
+      }
       return;
     }
 
@@ -65,6 +112,7 @@ export default function IdentityForm() {
         phoneWA: existing?.phoneWA || attendee?.phoneWA || ''
       });
       setIsVerified(true);
+      setIsManualEntry(false);
       setFormKey(Date.now());
       alert(`Pengecekan Sukses! Nama Anda cocok: ${allowed.fullName} (${allowed.studyField}). Silakan lengkapi data identitas Anda.`);
     } catch (e) {
@@ -76,6 +124,7 @@ export default function IdentityForm() {
         npk: cleaned
       });
       setIsVerified(true);
+      setIsManualEntry(false);
       setFormKey(Date.now());
       alert(`Pengecekan Sukses! Nama Anda cocok: ${allowed.fullName} (${allowed.studyField}). Silakan lengkapi data identitas Anda.`);
     } finally {
@@ -156,7 +205,7 @@ export default function IdentityForm() {
     const npkVal = formData.get('npk') as string || npkInput;
 
     const allowed = getAllowedAttendee(npkVal);
-    if (!allowed) {
+    if (!allowed && !isManualEntry) {
       alert('Pemberitahuan: Data yang Anda inputkan salah, isikan dengan benar.');
       return;
     }
@@ -164,16 +213,25 @@ export default function IdentityForm() {
     // Convert form to object and handle specific constraints safely with fallbacks
     const data: Partial<AttendeeData> = {
       email: (formData.get('email') as string || '').trim(),
-      fullName: (formData.get('fullName') as string || attendee?.fullName || allowed.fullName || '').toUpperCase().trim(),
+      fullName: (formData.get('fullName') as string || attendee?.fullName || allowed?.fullName || '').toUpperCase().trim(),
       npk: npkVal.trim(),
       address: (formData.get('address') as string || '').toUpperCase().trim(),
       city: (formData.get('city') as string || '').toUpperCase().trim(),
       province: (formData.get('province') as string || '').toUpperCase().trim(),
       schoolName: (formData.get('schoolName') as string || '').toUpperCase().trim(),
       phoneWA: (formData.get('phoneWA') as string || '').trim(),
-      studyField: (formData.get('studyField') as string || attendee?.studyField || allowed.studyField || '').trim(),
+      studyField: (formData.get('studyField') as string || attendee?.studyField || allowed?.studyField || '').trim(),
       photoUrl: attendee?.photoUrl || null
     };
+
+    if (!data.fullName) {
+      alert('Mohon isi Nama Lengkap Anda.');
+      return;
+    }
+    if (!data.studyField) {
+      alert('Mohon pilih Bidang Studi Sertifikasi Anda.');
+      return;
+    }
 
     await store.saveAttendee(data);
     navigate('/form-kehadiran');
@@ -265,17 +323,32 @@ export default function IdentityForm() {
 
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-              <User className="w-4 h-4 text-teal-600" /> Nama Lengkap Sesuai Ijazah (Terkunci Sesuai CSV)
+              <User className="w-4 h-4 text-teal-600" /> Nama Lengkap Sesuai Ijazah {isManualEntry ? '(Ketik Mandiri)' : '(Terkunci Sesuai CSV)'}
             </label>
-            <input 
-              required 
-              name="fullName" 
-              type="text" 
-              readOnly={true} // Terkunci otomatis dari database resmi agar 100% akurat
-              className="input-base bg-slate-100 text-slate-700 border-slate-200 font-bold cursor-not-allowed" 
-              placeholder="Selesaikan pengecekan NPK..." 
-              value={attendee?.fullName || ''} 
-            />
+            {isManualEntry ? (
+              <input 
+                required 
+                name="fullName" 
+                type="text" 
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase();
+                  setAttendee(prev => prev ? { ...prev, fullName: val } : null);
+                }}
+                className="input-base text-slate-850 border-slate-200 font-bold focus:ring-1 focus:ring-teal-500" 
+                placeholder="NAMA LENGKAP DETAIL" 
+                value={attendee?.fullName || ''} 
+              />
+            ) : (
+              <input 
+                required 
+                name="fullName" 
+                type="text" 
+                readOnly={true} // Terkunci otomatis dari database resmi agar 100% akurat
+                className="input-base bg-slate-100 text-slate-700 border-slate-200 font-bold cursor-not-allowed" 
+                placeholder="Selesaikan pengecekan NPK..." 
+                value={attendee?.fullName || ''} 
+              />
+            )}
           </div>
 
           <div>
@@ -358,14 +431,17 @@ export default function IdentityForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Bidang Studi Sertifikasi (Terkunci Sesuai CSV)</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Bidang Studi Sertifikasi {isManualEntry ? '(Pilih Mandiri)' : '(Terkunci Sesuai CSV)'}</label>
             <select 
               required 
               name="studyField" 
-              disabled={true} // Terkunci otomatis dari database resmi agar 100% akurat
-              className="input-base bg-slate-100 text-slate-700 border-slate-200 font-bold" 
+              disabled={!isManualEntry} // Terkunci otomatis jika bukan manual entry
+              className={`input-base ${!isManualEntry ? 'bg-slate-100 text-slate-700 border-slate-200 font-bold' : 'bg-white text-slate-800'}`} 
               value={attendee?.studyField || ''}
-              onChange={() => {}} // React controlled element warning suppressor
+              onChange={(e) => {
+                const val = e.target.value;
+                setAttendee(prev => prev ? { ...prev, studyField: val } : null);
+              }}
             >
               <option value="" disabled>Pilih Bidang Studi...</option>
               <option value="Pendidikan Agama Islam (Dinas)">Pendidikan Agama Islam (Dinas)</option>

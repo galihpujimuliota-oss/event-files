@@ -105,7 +105,10 @@ app.post('/api/sendemail', async (req, res) => {
       tls: {
         // Do not fail on invalid certs
         rejectUnauthorized: false
-      }
+      },
+      connectionTimeout: 5000, // 5 seconds
+      greetingTimeout: 4000,   // 4 seconds
+      socketTimeout: 5000      // 5 seconds
     });
 
     const info = await transporter.sendMail({

@@ -31,37 +31,34 @@ export default function SuccessCard() {
 
         // Automatically trigger email dispatch when the card is generated and viewed
         if (data.email) {
-          try {
-            await fetch('/api/sendemail', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                to: data.email,
-                subject: 'Berhasil: Registrasi Yudisium & Access Pass',
-                html: `<div style="font-family:sans-serif;max-width:550px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.05);">
-                  <div style="background:#0d9488;padding:16px;text-align:center;border-top-left-radius:12px;border-top-right-radius:12px;">
-                    <h2 style="color:#ffffff;margin:0;font-size:20px;letter-spacing:1px;">ACCESS PASS REGISTRASI</h2>
+          fetch('/api/sendemail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: data.email,
+              subject: 'Berhasil: Registrasi Yudisium & Access Pass',
+              html: `<div style="font-family:sans-serif;max-width:550px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.05);">
+                <div style="background:#0d9488;padding:16px;text-align:center;border-top-left-radius:12px;border-top-right-radius:12px;">
+                  <h2 style="color:#ffffff;margin:0;font-size:20px;letter-spacing:1px;">ACCESS PASS REGISTRASI</h2>
+                </div>
+                <div style="padding:20px;background:#ffffff;">
+                  <p style="font-size:16px;color:#1e293b;margin-bottom:8px;">Halo <strong>${data.fullName}</strong>,</p>
+                  <p style="font-size:14px;color:#64748b;line-height:1.6;">Selamat, registrasi Anda untuk kegiatan <strong>Yudisium & Pengukuhan Guru Profesional PPG Dalam Jabatan Batch 4 Tahun 2025</strong> telah berhasil direkam.</p>
+                  
+                  <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:16px;border-radius:8px;margin:20px 0;">
+                    <p style="margin:4px 0;font-size:13px;color:#64748b;">NAMA: <strong style="color:#0f172a;">${data.fullName}</strong></p>
+                    <p style="margin:4px 0;font-size:13px;color:#64748b;">ID / NPK: <strong style="color:#0f172a;">${data.npk}</strong></p>
+                    <p style="margin:4px 0;font-size:13px;color:#64748b;">TIPE KEHADIRAN: <strong style="color:#0d9488;text-transform:uppercase;">${data.attendanceType}</strong></p>
                   </div>
-                  <div style="padding:20px;background:#ffffff;">
-                    <p style="font-size:16px;color:#1e293b;margin-bottom:8px;">Halo <strong>${data.fullName}</strong>,</p>
-                    <p style="font-size:14px;color:#64748b;line-height:1.6;">Selamat, registrasi Anda untuk kegiatan <strong>Yudisium & Pengukuhan Guru Profesional PPG Dalam Jabatan Batch 4 Tahun 2025</strong> telah berhasil direkam.</p>
-                    
-                    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:16px;border-radius:8px;margin:20px 0;">
-                      <p style="margin:4px 0;font-size:13px;color:#64748b;">NAMA: <strong style="color:#0f172a;">${data.fullName}</strong></p>
-                      <p style="margin:4px 0;font-size:13px;color:#64748b;">ID / NPK: <strong style="color:#0f172a;">${data.npk}</strong></p>
-                      <p style="margin:4px 0;font-size:13px;color:#64748b;">TIPE KEHADIRAN: <strong style="color:#0d9488;text-transform:uppercase;">${data.attendanceType}</strong></p>
-                    </div>
 
-                    <p style="font-size:13px;color:#475569;line-height:1.5;">Kartu bukti registrasi (Access Pass QR Code) Anda telah siap. Silakan buka kembali halaman registrasi untuk mengunduh versi gambar (PNG) atau mencetaknya.</p>
-                    <p style="font-size:11px;color:#94a3b8;margin-top:24px;border-t:1px solid #f1f5f9;padding-top:12px;text-align:center;">Email ini dikirim secara otomatis oleh Sistem Yudisium PPG LPTK UIN Malang & Ascent Hotel.</p>
-                  </div>
-                </div>`
-              })
-            });
-            console.log("Auto-email sent successfully via success page trigger.");
-          } catch (e) {
-            console.error('Failed to auto-send registration success email:', e);
-          }
+                  <p style="font-size:13px;color:#475569;line-height:1.5;">Kartu bukti registrasi (Access Pass QR Code) Anda telah siap. Silakan buka kembali halaman registrasi untuk mengunduh versi gambar (PNG) atau mencetaknya.</p>
+                  <p style="font-size:11px;color:#94a3b8;margin-top:24px;border-t:1px solid #f1f5f9;padding-top:12px;text-align:center;">Email ini dikirim secara otomatis oleh Sistem Yudisium PPG LPTK UIN Malang & Ascent Hotel.</p>
+                </div>
+              </div>`
+            })
+          })
+          .then(() => console.log("Auto-email triggered successfully via success page."))
+          .catch(e => console.error('Failed to auto-send registration success email:', e));
         }
       }
     };

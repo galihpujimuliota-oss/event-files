@@ -37,6 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 5000, // 5 seconds
+      greetingTimeout: 4000,   // 4 seconds
+      socketTimeout: 5000      // 5 seconds
     });
 
     const info = await transporter.sendMail({
