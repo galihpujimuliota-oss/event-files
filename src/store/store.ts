@@ -360,11 +360,15 @@ export const store = {
           return {
             ...localItem,
             ...deserialized,
+            // Fallbacks for URLs if Supabase returned null (due to column mismatch) or "yes" (polyfill remnant)
+            paymentHotelProofUrl: (deserialized.paymentHotelProofUrl && deserialized.paymentHotelProofUrl !== 'yes') ? deserialized.paymentHotelProofUrl : (localItem?.paymentHotelProofUrl || deserialized.paymentHotelProofUrl),
+            paymentLegalisirProofUrl: (deserialized.paymentLegalisirProofUrl && deserialized.paymentLegalisirProofUrl !== 'yes') ? deserialized.paymentLegalisirProofUrl : (localItem?.paymentLegalisirProofUrl || deserialized.paymentLegalisirProofUrl),
+            photoUrl: (deserialized.photoUrl && deserialized.photoUrl !== 'yes') ? deserialized.photoUrl : (localItem?.photoUrl || deserialized.photoUrl),
             wantsSash: deserialized.wantsSash !== undefined && deserialized.wantsSash !== null ? deserialized.wantsSash : localItem?.wantsSash,
             paymentSashBank: deserialized.paymentSashBank || localItem?.paymentSashBank,
             paymentSashAccountName: deserialized.paymentSashAccountName || localItem?.paymentSashAccountName,
             paymentSashAccountNumber: deserialized.paymentSashAccountNumber || localItem?.paymentSashAccountNumber,
-            paymentSashProofUrl: deserialized.paymentSashProofUrl || localItem?.paymentSashProofUrl
+            paymentSashProofUrl: (deserialized.paymentSashProofUrl && deserialized.paymentSashProofUrl !== 'yes') ? deserialized.paymentSashProofUrl : (localItem?.paymentSashProofUrl || deserialized.paymentSashProofUrl)
           } as AttendeeData;
         }
       } catch (e) {
