@@ -46,6 +46,77 @@ let memoryAttendee: AttendeeData | null = null;
 let memoryDb: Record<string, AttendeeData> = {};
 let cachedColumnsToSelect: string | null = null;
 
+let sashSupportCached: boolean | null = null;
+
+async function checkIfDatabaseHasSash(): Promise<boolean> {
+  if (sashSupportCached !== null) return sashSupportCached;
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('attendees').select('wantsSash').limit(1);
+    if (error) {
+      console.log('Supabase does not support sash columns natively, using fallback serialization:', error.message);
+      sashSupportCached = false;
+    } else {
+      console.log('Supabase supports sash columns natively.');
+      sashSupportCached = true;
+    }
+  } catch (e) {
+    sashSupportCached = false;
+  }
+  return sashSupportCached;
+}
+
+function serializeItem(item: any, hasNativeSash: boolean): any {
+  if (!item) return item;
+  if (hasNativeSash) return item;
+  
+  const copied = { ...item };
+  const sashData: any = {};
+  let containsSashData = false;
+  
+  const fields = ['wantsSash', 'paymentSashBank', 'paymentSashAccountName', 'paymentSashAccountNumber', 'paymentSashProofUrl', 'paymentSashText'];
+  for (const field of fields) {
+    if (copied[field] !== undefined) {
+      sashData[field] = copied[field];
+      containsSashData = true;
+      delete copied[field];
+    }
+  }
+  
+  if (containsSashData) {
+    const originalAddress = copied.address || '';
+    const cleanAddress = originalAddress.split('|||SASH_JSON:')[0];
+    copied.address = cleanAddress + '|||SASH_JSON:' + JSON.stringify(sashData);
+  }
+  
+  return copied;
+}
+
+function deserializeItem(item: any): any {
+  if (!item) return item;
+  const copied = { ...item };
+  
+  const addressStr = copied.address || '';
+  if (addressStr.includes('|||SASH_JSON:')) {
+    const parts = addressStr.split('|||SASH_JSON:');
+    copied.address = parts[0];
+    try {
+      const sashData = JSON.parse(parts[1]);
+      if (sashData) {
+        const fields = ['wantsSash', 'paymentSashBank', 'paymentSashAccountName', 'paymentSashAccountNumber', 'paymentSashProofUrl', 'paymentSashText'];
+        for (const field of fields) {
+          if (sashData[field] !== undefined) {
+            copied[field] = sashData[field];
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse sash JSON from address', e);
+    }
+  }
+  return copied;
+}
+
 // Internal Local Storage helper
 const getLocalDb = (): Record<string, AttendeeData> => {
   try {
@@ -235,7 +306,8 @@ export const store = {
 
         if (allData.length > 0) {
           for (const item of allData) {
-             const att = item as any;
+             let att = item as any;
+             att = deserializeItem(att);
              // Polyfill properties so that AdminScanner can still count them
              if (att.paymentHotelBank) att.paymentHotelProofUrl = 'yes';
              if (att.paymentLegalisirBank) att.paymentLegalisirProofUrl = 'yes';
@@ -283,15 +355,16 @@ export const store = {
       try {
         const { data, error } = await supabase.from('attendees').select('*').eq('id', id).single();
         if (!error && data) {
+          const deserialized = deserializeItem(data);
           // SMART MERGE for single attendee
           return {
             ...localItem,
-            ...data,
-            wantsSash: data.wantsSash !== undefined && data.wantsSash !== null ? data.wantsSash : localItem?.wantsSash,
-            paymentSashBank: data.paymentSashBank || localItem?.paymentSashBank,
-            paymentSashAccountName: data.paymentSashAccountName || localItem?.paymentSashAccountName,
-            paymentSashAccountNumber: data.paymentSashAccountNumber || localItem?.paymentSashAccountNumber,
-            paymentSashProofUrl: data.paymentSashProofUrl || localItem?.paymentSashProofUrl
+            ...deserialized,
+            wantsSash: deserialized.wantsSash !== undefined && deserialized.wantsSash !== null ? deserialized.wantsSash : localItem?.wantsSash,
+            paymentSashBank: deserialized.paymentSashBank || localItem?.paymentSashBank,
+            paymentSashAccountName: deserialized.paymentSashAccountName || localItem?.paymentSashAccountName,
+            paymentSashAccountNumber: deserialized.paymentSashAccountNumber || localItem?.paymentSashAccountNumber,
+            paymentSashProofUrl: deserialized.paymentSashProofUrl || localItem?.paymentSashProofUrl
           } as AttendeeData;
         }
       } catch (e) {
@@ -322,7 +395,9 @@ export const store = {
     
     // 3. Upsert to Supabase if available (this may omit a few new columns if user hasn't run sql schema additions)
     if (supabase) {
-      const { error } = await safeUpsertSupabaseArray('attendees', [updated]);
+      const hasNativeSash = await checkIfDatabaseHasSash();
+      const serialized = serializeItem(updated, hasNativeSash);
+      const { error } = await safeUpsertSupabaseArray('attendees', [serialized]);
       if (error) {
         console.error('Supabase error:', error);
         
@@ -415,9 +490,12 @@ export const store = {
     // 2. Write to Supabase
     if (supabase) {
       try {
-        const { data: updatedData, error } = await safeUpdateSupabase('attendees', id, data);
+        const hasNativeSash = await checkIfDatabaseHasSash();
+        const serialized = serializeItem(localResult || data, hasNativeSash);
+        const { data: updatedData, error } = await safeUpdateSupabase('attendees', id, serialized);
         if (!error && updatedData) {
-          return { ...localResult, ...updatedData } as AttendeeData;
+          const deserialized = deserializeItem(updatedData);
+          return { ...localResult, ...deserialized } as AttendeeData;
         }
       } catch (e) {
         console.error('Supabase exception:', e);
@@ -472,7 +550,9 @@ export const store = {
         return { success: false, message: 'Tidak menemukan data pendaftaran lokal di browser ini untuk disinkronkan.' };
       }
       
-      const { error } = await safeUpsertSupabaseArray('attendees', toSync);
+      const hasNativeSash = await checkIfDatabaseHasSash();
+      const serializedToSync = toSync.map(item => serializeItem(item, hasNativeSash));
+      const { error } = await safeUpsertSupabaseArray('attendees', serializedToSync);
       if (error) {
         throw error;
       }
