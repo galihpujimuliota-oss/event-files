@@ -46,51 +46,18 @@ export default function IdentityForm() {
       return;
     }
 
+    // Format validation: must be alphanumeric of length 4 to 24 digit/character
+    const isValidFormat = /^[a-zA-Z0-9-]{4,24}$/.test(cleaned);
+    if (!isValidFormat) {
+      alert('Pemberitahuan: Format NPK/Nomor Siaga salah. Harus berupa angka/karakter 4 hingga 24 digit.');
+      setIsVerified(false);
+      return;
+    }
+
     const allowed = getAllowedAttendee(cleaned);
     if (!allowed) {
-      const confirmManual = window.confirm(
-        'NPK/Nomor Siaga Anda tidak terdaftar dalam verifikasi database cepat.\n\nApakah Anda ingin mengisikan biodata pendaftaran Yudisium Anda secara mandiri?'
-      );
-      if (confirmManual) {
-        setIsSearching(true);
-        try {
-          const all = await store.getAllAttendees();
-          const existing = Object.values(all).find(a => a.npk === cleaned);
-          
-          setAttendee({
-            ...attendee!,
-            fullName: existing?.fullName || attendee?.fullName || '',
-            studyField: existing?.studyField || attendee?.studyField || '',
-            npk: cleaned,
-            email: existing?.email || attendee?.email || '',
-            address: existing?.address || attendee?.address || '',
-            city: existing?.city || attendee?.city || '',
-            province: existing?.province || attendee?.province || '',
-            schoolName: existing?.schoolName || attendee?.schoolName || '',
-            phoneWA: existing?.phoneWA || attendee?.phoneWA || ''
-          });
-          setIsVerified(true);
-          setIsManualEntry(true);
-          setFormKey(Date.now());
-          alert('Input Mandiri: Silakan ketik Nama Lengkap Anda dan pilih Bidang Studi Sertifikasi Anda di bawah.');
-        } catch (e) {
-          console.error(e);
-          setAttendee({
-            ...attendee!,
-            fullName: '',
-            studyField: '',
-            npk: cleaned
-          });
-          setIsVerified(true);
-          setIsManualEntry(true);
-          setFormKey(Date.now());
-          alert('Input Mandiri: Silakan ketik Nama Lengkap Anda dan pilih Bidang Studi Sertifikasi Anda di bawah.');
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
-        setIsVerified(false);
-      }
+      alert('Pemberitahuan: Data yang Anda inputkan salah, isikan dengan benar.');
+      setIsVerified(false);
       return;
     }
 
@@ -99,10 +66,12 @@ export default function IdentityForm() {
       const all = await store.getAllAttendees();
       const existing = Object.values(all).find(a => a.npk === cleaned);
       
+      const isManual = !allowed.fullName;
+
       setAttendee({
         ...attendee!,
-        fullName: allowed.fullName,
-        studyField: allowed.studyField,
+        fullName: existing?.fullName || allowed.fullName || attendee?.fullName || '',
+        studyField: existing?.studyField || allowed.studyField || attendee?.studyField || '',
         npk: cleaned,
         email: existing?.email || attendee?.email || '',
         address: existing?.address || attendee?.address || '',
@@ -112,11 +81,17 @@ export default function IdentityForm() {
         phoneWA: existing?.phoneWA || attendee?.phoneWA || ''
       });
       setIsVerified(true);
-      setIsManualEntry(false);
+      setIsManualEntry(isManual);
       setFormKey(Date.now());
-      alert(`Pengecekan Sukses! Nama Anda cocok: ${allowed.fullName} (${allowed.studyField}). Silakan lengkapi data identitas Anda.`);
+      
+      if (isManual) {
+        alert('Verifikasi Berhasil! Silakan lengkapi Nama Lengkap Anda & pilih Bidang Studi Sertifikasi Anda secara mandiri di bawah.');
+      } else {
+        alert(`Pengecekan Sukses! Nama Anda cocok: ${allowed.fullName} (${allowed.studyField}). Silakan lengkapi data pendaftaran Anda.`);
+      }
     } catch (e) {
       console.error(e);
+      const isManual = !allowed.fullName;
       setAttendee({
         ...attendee!,
         fullName: allowed.fullName,
@@ -124,9 +99,13 @@ export default function IdentityForm() {
         npk: cleaned
       });
       setIsVerified(true);
-      setIsManualEntry(false);
+      setIsManualEntry(isManual);
       setFormKey(Date.now());
-      alert(`Pengecekan Sukses! Nama Anda cocok: ${allowed.fullName} (${allowed.studyField}). Silakan lengkapi data identitas Anda.`);
+      if (isManual) {
+        alert('Verifikasi Berhasil! Silakan lengkapi Nama Lengkap Anda & pilih Bidang Studi Sertifikasi Anda secara mandiri di bawah.');
+      } else {
+        alert(`Pengecekan Sukses! Nama Anda cocok: ${allowed.fullName} (${allowed.studyField}). Silakan lengkapi data pendaftaran Anda.`);
+      }
     } finally {
       setIsSearching(false);
     }

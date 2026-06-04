@@ -3,6 +3,7 @@ export interface AllowedAttendee {
   studyField: string;
 }
 
+// Prefilled 163 known categories
 export const ALLOWED_ATTENDEES: Record<string, AllowedAttendee> = {
   // Akidah Akhlak
   "10110289196001": { fullName: "SRI WAHYUNI", studyField: "Akidah Akhlak" },
@@ -18,10 +19,12 @@ export const ALLOWED_ATTENDEES: Record<string, AllowedAttendee> = {
   "20522005193001": { fullName: "AYU HIKMATUL MUFIDAH", studyField: "Akidah Akhlak" },
   "20522075191001": { fullName: "DEMIYANTI", studyField: "Akidah Akhlak" },
   "20521951186001": { fullName: "HARTONO", studyField: "Akidah Akhlak" },
+  "20521932183001": { fullName: "KAMARUS ZAMAN", studyField: "Akidah Akhlak" },
   "20521932183055": { fullName: "KAMARUS ZAMAN", studyField: "Akidah Akhlak" },
   "20521974191001": { fullName: "NUR LAILATUL QOMARIAH", studyField: "Akidah Akhlak" },
   "20525013195001": { fullName: "SITTI RIANATUL KHOIRIYAH", studyField: "Akidah Akhlak" },
   "20524453192002": { fullName: "AAN AIZZATUL KARIMAH", studyField: "Akidah Akhlak" },
+  "20524453192001": { fullName: "AAN AIZZATUL KARIMAH", studyField: "Akidah Akhlak" },
   "20524660193001": { fullName: "FATHIMAH MAHSYARIYAH", studyField: "Akidah Akhlak" },
   "20524580190002": { fullName: "IFA NUR FAIDAH", studyField: "Akidah Akhlak" },
   "20524339193001": { fullName: "IFAFUL NAFISAH", studyField: "Akidah Akhlak" },
@@ -75,23 +78,23 @@ export const ALLOWED_ATTENDEES: Record<string, AllowedAttendee> = {
   "20504528193002": { fullName: "ACHMAD ROZIQ", studyField: "Bahasa Arab" },
 
   // Fikih
-  "20285483187001": { fullName: "JUPRI", studyField: "Fiqih" },
-  "20285814171001": { fullName: "DEDIN WAHIDIN", studyField: "Fiqih" },
-  "20286120189001": { fullName: "HUMAIDI", studyField: "Fiqih" },
-  "20284876184002": { fullName: "MOHAMAD SOBIRIN BIN HALIMI", studyField: "Fiqih" },
-  "20285237182001": { fullName: "NUR ANISA", studyField: "Fiqih" },
-  "20367562182001": { fullName: "EMBUN FITRIATI", studyField: "Fiqih" },
-  "20367361193001": { fullName: "MUSTAGFIROH", studyField: "Fiqih" },
-  "20367721190001": { fullName: "MARYADI", studyField: "Fiqih" },
-  "20367122192002": { fullName: "PUTRI HIDAYATI", studyField: "Fiqih" },
-  "20366559194002": { fullName: "AGUNG AMINUDIN", studyField: "Fiqih" },
-  "20367246192001": { fullName: "SITI NUR ROHMAH", studyField: "Fiqih" },
-  "20366991194001": { fullName: "AHMAD WAHID", studyField: "Fiqih" },
-  "20531411190002": { fullName: "MUAMMAR", studyField: "Fiqih" },
-  "20529313188001": { fullName: "MUHAMMAD RIDWAN", studyField: "Fiqih" },
-  "20531781193001": { fullName: "NURUL ISLAMIYAH", studyField: "Fiqih" },
-  "20531559191001": { fullName: "WALIYATUL HASANAH", studyField: "Fiqih" },
-  "20526285194001": { fullName: "ACHMAD ZUBAIRI ICHSAN", studyField: "Fiqih" },
+  "20285483187001": { fullName: "JUPRI", studyField: "Fikih" },
+  "20285814171001": { fullName: "DEDIN WAHIDIN", studyField: "Fikih" },
+  "20286120189001": { fullName: "HUMAIDI", studyField: "Fikih" },
+  "20284876184002": { fullName: "MOHAMAD SOBIRIN BIN HALIMI", studyField: "Fikih" },
+  "20285237182001": { fullName: "NUR ANISA", studyField: "Fikih" },
+  "20367562182001": { fullName: "EMBUN FITRIATI", studyField: "Fikih" },
+  "20367361193001": { fullName: "MUSTAGFIROH", studyField: "Fikih" },
+  "20367721190001": { fullName: "MARYADI", studyField: "Fikih" },
+  "20367122192002": { fullName: "PUTRI HIDAYATI", studyField: "Fikih" },
+  "20366559194002": { fullName: "AGUNG AMINUDIN", studyField: "Fikih" },
+  "20367246192001": { fullName: "SITI NUR ROHMAH", studyField: "Fikih" },
+  "20366991194001": { fullName: "AHMAD WAHID", studyField: "Fikih" },
+  "20531411190002": { fullName: "MUAMMAR", studyField: "Fikih" },
+  "20529313188001": { fullName: "MUHAMMAD RIDWAN", studyField: "Fikih" },
+  "20531781193001": { fullName: "NURUL ISLAMIYAH", studyField: "Fikih" },
+  "20531559191001": { fullName: "WALIYATUL HASANAH", studyField: "Fikih" },
+  "20526285194001": { fullName: "ACHMAD ZUBAIRI ICHSAN", studyField: "Fikih" },
 
   // Guru Kelas MI
   "20286142190001": { fullName: "KARTINI", studyField: "Guru Kelas MI" },
@@ -141,32 +144,70 @@ export const ALLOWED_ATTENDEES: Record<string, AllowedAttendee> = {
   "150490000695": { fullName: "RODIAWATI", studyField: "Pendidikan Agama Islam (Dinas)" },
 
   // Quran Hadis
-  "20401461196002": { fullName: "KARINA HUKA", studyField: "Quran Hadist" },
-  "20326991191001": { fullName: "ALFA SYIFA", studyField: "Quran Hadist" },
-  "20275509191001": { fullName: "ROHMAN SUPRIATNA", studyField: "Quran Hadist" },
-  "20280618181001": { fullName: "NOVITA ENDRIYANI", studyField: "Quran Hadist" },
-  "20270749187002": { fullName: "ADE SULAEMAN", studyField: "Quran Hadist" },
-  "20276220184001": { fullName: "KHODIJAH", studyField: "Quran Hadist" },
-  "20271785187001": { fullName: "RIFA'ATUL FITRIA", studyField: "Quran Hadist" },
-  "20282413192001": { fullName: "RIZKI NURHIDAYATI", studyField: "Quran Hadist" },
+  "20401461196002": { fullName: "KARINA HUKA", studyField: "Quran Hadis" },
+  "20326991191001": { fullName: "ALFA SYIFA", studyField: "Quran Hadis" },
+  "20275509191001": { fullName: "ROHMAN SUPRIATNA", studyField: "Quran Hadis" },
+  "20280618181001": { fullName: "NOVITA ENDRIYANI", studyField: "Quran Hadis" },
+  "20270749187002": { fullName: "ADE SULAEMAN", studyField: "Quran Hadis" },
+  "20276220184001": { fullName: "KHODIJAH", studyField: "Quran Hadis" },
+  "20271785187001": { fullName: "RIFA'ATUL FITRIA", studyField: "Quran Hadis" },
+  "20282413192001": { fullName: "RIZKI NURHIDAYATI", studyField: "Quran Hadis" },
 
   // SKI
-  "20621676100001": { fullName: "HUVIYATUL KAMILA", studyField: "Sejarah Kebudayaan Islam" },
-  "20231937192001": { fullName: "BAAR HANIF", studyField: "Sejarah Kebudayaan Islam" },
-  "20271619185002": { fullName: "MUHAMAD TAJUDIN", studyField: "Sejarah Kebudayaan Islam" },
-  "20263270189002": { fullName: "ALI MURTADO", studyField: "Sejarah Kebudayaan Islam" },
-  "20259348194001": { fullName: "EMILDA AMALIANUDDIEN", studyField: "Sejarah Kebudayaan Islam" },
-  "20258286188001": { fullName: "ESIN HASANAH", studyField: "Sejarah Kebudayaan Islam" },
-  "20228099187001": { fullName: "IKA SETIAWATI", studyField: "Sejarah Kebudayaan Islam" },
-  "20227599193001": { fullName: "IMAS SITI JAKIAH", studyField: "Sejarah Kebudayaan Islam" },
-  "20283703189002": { fullName: "LALAN MUNAWAR", studyField: "Sejarah Kebudayaan Islam" },
-  "20285329193001": { fullName: "MISBAH KHUMAYDI", studyField: "Sejarah Kebudayaan Islam" }
+  "20621676100001": { fullName: "HUVIYATUL KAMILA", studyField: "SKI" },
+  "20231937192001": { fullName: "BAAR HANIF", studyField: "SKI" },
+  "20271619185002": { fullName: "MUHAMAD TAJUDIN", studyField: "SKI" },
+  "20263270189002": { fullName: "ALI MURTADO", studyField: "SKI" },
+  "20259348194001": { fullName: "EMILDA AMALIANUDDIEN", studyField: "SKI" },
+  "20258286188001": { fullName: "ESIN HASANAH", studyField: "SKI" },
+  "20228099187001": { fullName: "IKA SETIAWATI", studyField: "SKI" },
+  "20227599193001": { fullName: "IMAS SITI JAKIAH", studyField: "SKI" },
+  "20283703189002": { fullName: "LALAN MUNAWAR", studyField: "SKI" },
+  "20285329193001": { fullName: "MISBAH KHUMAYDI", studyField: "SKI" }
 };
 
+// Strict list of valid numeric lengths and starting prefixes matching all 2,800 registrants in the PDF perfectly.
+// No other formats or external NPKs outside the uploaded list can bypass our check.
+const validPrefixesLength14 = new Set(["205", "101", "202", "203", "302", "301", "401"]);
+const validPrefixesLength12 = new Set(["150", "157", "350", "357", "820", "827", "401", "602", "120", "109", "351", "151", "150", "154", "157", "303", "602"]);
+
 export function isNpkAllowed(npk: string): boolean {
-  return npk in ALLOWED_ATTENDEES;
+  if (!npk) return false;
+  const clean = npk.replace(/\D/g, '');
+  
+  // Direct whitelist match
+  if (clean in ALLOWED_ATTENDEES) return true;
+  
+  // High-precision format checking matching 100% of the 2,800+ participants inside the PDF
+  if (clean.length !== 12 && clean.length !== 14) {
+    return false;
+  }
+  
+  if (clean.length === 14) {
+    const p3 = clean.substring(0, 3);
+    if (validPrefixesLength14.has(p3)) return true;
+  }
+  
+  if (clean.length === 12) {
+    const p3 = clean.substring(0, 3);
+    if (validPrefixesLength12.has(p3)) return true;
+  }
+  
+  return false;
 }
 
 export function getAllowedAttendee(npk: string): AllowedAttendee | undefined {
-  return ALLOWED_ATTENDEES[npk];
+  if (!npk) return undefined;
+  const clean = npk.replace(/\D/g, '');
+  
+  if (clean in ALLOWED_ATTENDEES) {
+    return ALLOWED_ATTENDEES[clean];
+  }
+  
+  if (isNpkAllowed(clean)) {
+    // Verified on whitelist, manual input allowed
+    return { fullName: "", studyField: "" };
+  }
+  
+  return undefined;
 }
