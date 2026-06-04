@@ -249,15 +249,6 @@ export default function AdminScanner() {
 
   useEffect(() => {
     updateStats();
-    
-    // Auto-poll local db/supabase with reduced rate, and pause when tab is in background
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        updateStats();
-      }
-    }, 120000); // 120 seconds interval
-    
-    return () => clearInterval(interval);
   }, [activeTab]);
 
   useEffect(() => {
