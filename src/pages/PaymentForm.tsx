@@ -136,10 +136,6 @@ export default function PaymentForm() {
       // Sash details (optional, both Daring and Luring)
       data.wantsSash = wantsSash;
       if (wantsSash) {
-        data.paymentSashText = (formData.get('paymentSashText') as string || '').toUpperCase().trim();
-        if (!data.paymentSashText) {
-          throw new Error('Tulisan / Pesan selempang wajib diisi karena Anda memilih memesan selempang.');
-        }
         data.paymentSashAccountName = (formData.get('paymentSashAccountName') as string || '').toUpperCase().trim();
         data.paymentSashAccountNumber = (formData.get('paymentSashAccountNumber') as string || '').toUpperCase().trim();
         data.paymentSashBank = (formData.get('paymentSashBank') as string || '').toUpperCase().trim();
@@ -152,7 +148,6 @@ export default function PaymentForm() {
           throw new Error('Bukti pembayaran selempang wajib diunggah karena Anda memilih memesan selempang.');
         }
       } else {
-        data.paymentSashText = '';
         data.paymentSashAccountName = '';
         data.paymentSashAccountNumber = '';
         data.paymentSashBank = '';
@@ -404,12 +399,6 @@ export default function PaymentForm() {
                   BANK BRI &mdash; An. Ramadhan Al Ayubi &mdash; <span className="font-bold text-amber-700">Rp 60.000,00</span> <br/>
                   <span className="text-sm font-extrabold text-amber-700 font-mono tracking-wider">227101000168532</span>
                 </div>
-              </div>
-
-              <div className="font-sans">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Tulisan / Nama pada Selempang (Pesan Selempang)</label>
-                <input required={wantsSash} name="paymentSashText" type="text" onChange={handleUppercase} className="input-base uppercase font-bold text-teal-700" placeholder="Contoh: NAMA LENGKAP & GELAR (SRI WAHYUNI, S.Pd.)" defaultValue={attendee?.paymentSashText || ''} />
-                <p className="text-[11px] text-slate-500 mt-1 font-medium">Tuliskan nama beserta gelar Anda secara lengkap dan benar untuk dicetak pada selempang.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">

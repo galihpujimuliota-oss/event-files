@@ -241,7 +241,19 @@ export const store = {
              if (att.paymentLegalisirBank) att.paymentLegalisirProofUrl = 'yes';
              if (att.paymentSashBank) att.paymentSashProofUrl = 'yes';
              if (att.fullName) att.photoUrl = 'yes'; // best approximation without url for list view
-             result[item.id] = att;
+             
+             // SMART MERGE: Keep existing richer local data (especially if Supabase doesn't have the sash columns)
+             const existing = (result[item.id] || {}) as any;
+             result[item.id] = {
+               ...existing,
+               ...att,
+               // Explicitly preserve sash fields if they exist in local memory/DB but are missing or falsy in Supabase item
+               wantsSash: att.wantsSash !== undefined && att.wantsSash !== null ? att.wantsSash : existing.wantsSash,
+               paymentSashBank: att.paymentSashBank || existing.paymentSashBank,
+               paymentSashAccountName: att.paymentSashAccountName || existing.paymentSashAccountName,
+               paymentSashAccountNumber: att.paymentSashAccountNumber || existing.paymentSashAccountNumber,
+               paymentSashProofUrl: att.paymentSashProofUrl && att.paymentSashProofUrl !== 'yes' ? att.paymentSashProofUrl : (existing.paymentSashProofUrl || att.paymentSashProofUrl)
+             };
           }
         }
       } catch (e) {
@@ -253,33 +265,62 @@ export const store = {
   },
 
   async getAttendeeById(id: string): Promise<AttendeeData | null> {
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.from('attendees').select('*').eq('id', id).single();
-        if (!error && data) return data as AttendeeData;
-      } catch (e) {
-        console.error('Supabase get id exception:', e);
-      }
-    }
+    let localItem: any = null;
     try {
       const res = await fetch('/api/attendees/' + id);
       if (res.ok) {
-        return await res.json();
+        localItem = await res.json();
       }
     } catch (e) {
       console.error(e);
     }
-    const all = getLocalDb();
-    if (all[id]) return all[id];
-    return null;
+    if (!localItem) {
+      const all = getLocalDb();
+      if (all[id]) localItem = all[id];
+    }
+
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('attendees').select('*').eq('id', id).single();
+        if (!error && data) {
+          // SMART MERGE for single attendee
+          return {
+            ...localItem,
+            ...data,
+            wantsSash: data.wantsSash !== undefined && data.wantsSash !== null ? data.wantsSash : localItem?.wantsSash,
+            paymentSashBank: data.paymentSashBank || localItem?.paymentSashBank,
+            paymentSashAccountName: data.paymentSashAccountName || localItem?.paymentSashAccountName,
+            paymentSashAccountNumber: data.paymentSashAccountNumber || localItem?.paymentSashAccountNumber,
+            paymentSashProofUrl: data.paymentSashProofUrl || localItem?.paymentSashProofUrl
+          } as AttendeeData;
+        }
+      } catch (e) {
+        console.error('Supabase get id exception:', e);
+      }
+    }
+    return localItem;
   },
   
   async submitFinalRegistration(data: Partial<AttendeeData>) {
-    // 1. Save to local session
+    // 1. Save to local session (localStorage)
     const updated = this.saveAttendee({ ...data, isRegistered: true });
     
-    // 2. Upsert to Supabase if available
-    let savedToSupabase = false;
+    // 2. ALWAYS save to local Node express API backup (db.json) first
+    try {
+      await fetch('/api/attendees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (e) {
+      console.error('Local Node API backup post failed:', e);
+      // Fallback local memory
+      const all = getLocalDb();
+      all[updated.id] = updated as AttendeeData;
+      setLocalDb(all);
+    }
+    
+    // 3. Upsert to Supabase if available (this may omit a few new columns if user hasn't run sql schema additions)
     if (supabase) {
       const { error } = await safeUpsertSupabaseArray('attendees', [updated]);
       if (error) {
@@ -292,23 +333,6 @@ export const store = {
         }
 
         throw new Error(customMessage);
-      } else {
-        savedToSupabase = true;
-      }
-    }
-
-    if (!savedToSupabase) {
-      // 3. Keep local API fallback
-      try {
-        await fetch('/api/attendees', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated)
-        });
-      } catch (e) {
-        const all = getLocalDb();
-        all[updated.id] = updated as AttendeeData;
-        setLocalDb(all);
       }
     }
 
@@ -339,16 +363,8 @@ export const store = {
   },
   
   async verifyAttendeeAdmin(id: string) {
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.from('attendees').update({ status: 'VERIFIED' }).eq('id', id).select().single();
-        if (!error && data) return data as AttendeeData;
-      } catch (e) {
-        console.error('Supabase exception:', e);
-      }
-    }
-    
-    // Fallback
+    // 1. Update local Node express API fallback first
+    let localResult: AttendeeData | null = null;
     try {
       const full = await this.getAttendeeById(id);
       if (full) {
@@ -358,37 +374,57 @@ export const store = {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(full)
         });
-        return full;
+        localResult = full;
       }
-    } catch(e) {}
-    
-    return null;
-  },
-  
-  async updateAttendeeAdmin(id: string, data: Partial<AttendeeData>) {
+    } catch(e) {
+      console.error('Local verify API failed:', e);
+    }
+
+    // 2. Update Supabase
     if (supabase) {
       try {
-        const { data: updatedData, error } = await safeUpdateSupabase('attendees', id, data);
-        if (!error && updatedData) return updatedData as AttendeeData;
+        const { data, error } = await supabase.from('attendees').update({ status: 'VERIFIED' }).eq('id', id).select().single();
+        if (!error && data) {
+          return { ...localResult, ...data } as AttendeeData;
+        }
       } catch (e) {
         console.error('Supabase exception:', e);
       }
     }
     
+    return localResult;
+  },
+  
+  async updateAttendeeAdmin(id: string, data: Partial<AttendeeData>) {
+    // 1. ALWAYS write to Local API first
+    let localResult: AttendeeData | null = null;
     try {
       const full = await this.getAttendeeById(id);
       if (full) {
-        const updated = { ...full, ...data } as AttendeeData;
+        localResult = { ...full, ...data };
         await fetch('/api/attendees', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated)
+          body: JSON.stringify(localResult)
         });
-        return updated;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Local API update failed:', e);
+    }
+
+    // 2. Write to Supabase
+    if (supabase) {
+      try {
+        const { data: updatedData, error } = await safeUpdateSupabase('attendees', id, data);
+        if (!error && updatedData) {
+          return { ...localResult, ...updatedData } as AttendeeData;
+        }
+      } catch (e) {
+        console.error('Supabase exception:', e);
+      }
+    }
     
-    return null;
+    return localResult;
   },
   
   async deleteAttendeeAdmin(id: string) {
