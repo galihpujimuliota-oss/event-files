@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown } from 'lucide-react';
+import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown, RefreshCw } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -211,10 +211,12 @@ export default function AdminScanner() {
   useEffect(() => {
     updateStats();
     
-    // Auto-poll local db/supabase to ensure dashboard is always in sync with registrations
+    // Auto-poll local db/supabase with reduced rate, and pause when tab is in background
     const interval = setInterval(() => {
-      updateStats();
-    }, 15000);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        updateStats();
+      }
+    }, 120000); // 120 seconds interval
     
     return () => clearInterval(interval);
   }, [activeTab]);
@@ -372,6 +374,15 @@ export default function AdminScanner() {
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Local DB
               </span>
             )}
+            <button 
+              onClick={() => updateStats()} 
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 bg-teal-850 hover:bg-teal-900 active:scale-95 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all disabled:opacity-50"
+              title="Perbarui Data Manual"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden xs:inline">Perbarui</span>
+            </button>
             <button onClick={handleLogout} className="flex items-center gap-1 bg-teal-800 hover:bg-teal-900 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">
               <LogOut className="w-4 h-4" /> Logout
             </button>

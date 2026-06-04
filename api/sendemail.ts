@@ -47,8 +47,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     
     return res.status(200).json({ success: true, messageId: info.messageId });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Email error:', error);
-    return res.status(500).json({ error: 'Failed to send email' });
+    let errorMessage = error?.message || 'Failed to send email';
+    if (errorMessage.includes('535') || errorMessage.includes('Username and Password not accepted') || errorMessage.includes('Invalid login')) {
+      errorMessage = "Gagal login ke SMTP Server (Error 535). Jika menggunakan Gmail, Anda HARUS menggunakan 'Sandi Aplikasi' (App Password) berisi 16 karakter tanpa spasi dari Akun Google Anda, BUKAN kata sandi login biasa. Silakan buka Akun Google Anda -> Keamanan -> Aktifkan Verifikasi 2 Langkah -> Cari menu 'Sandi Aplikasi' (App Password) dan buat sandi khusus untuk aplikasi ini.";
+    }
+    return res.status(500).json({ error: errorMessage });
   }
 }

@@ -118,7 +118,11 @@ app.post('/api/sendemail', async (req, res) => {
     res.json({ success: true, messageId: info.messageId });
   } catch (error: any) {
     console.error('Email error:', error);
-    res.status(500).json({ error: 'Failed to send email: ' + error.message });
+    let errorMessage = error.message || '';
+    if (errorMessage.includes('535') || errorMessage.includes('Username and Password not accepted') || errorMessage.includes('Invalid login')) {
+      errorMessage = "Gagal login ke SMTP Server (Error 535). Jika menggunakan Gmail, Anda HARUS menggunakan 'Sandi Aplikasi' (App Password) berisi 16 karakter tanpa spasi dari Akun Google Anda, BUKAN kata sandi login biasa. Silakan buka Akun Google Anda -> Keamanan -> Aktifkan Verifikasi 2 Langkah -> Cari menu 'Sandi Aplikasi' (App Password) dan buat sandi khusus untuk aplikasi ini.";
+    }
+    res.status(500).json({ error: 'Failed to send email: ' + errorMessage });
   }
 });
 
