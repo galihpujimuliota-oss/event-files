@@ -165,15 +165,19 @@ export const store = {
   async getAllAttendees(): Promise<Record<string, AttendeeData>> {
     if (supabase) {
       try {
-        // Exclude bulk base64 image data from the initial mass-load to prevent browser OOM and slow load times.
-        // We fetch the image individually via getAttendeeById instead.
-        const { data, error } = await supabase.from('attendees').select(`
-          id, email, fullName, npk, address, city, province, schoolName, phoneWA, studyField,
-          attendanceType, wantsSash, certificateRetrievalMethod, isRegistered, status,
-          paymentHotelBank, paymentHotelAccountName, paymentHotelAccountNumber,
-          paymentLegalisirBank, paymentLegalisirAccountName, paymentLegalisirAccountNumber,
-          paymentSashBank, paymentSashAccountName, paymentSashAccountNumber
-        `);
+        // Exclude bulk base64 image data dynamically to handle both schema mismatch and OOM.
+        // First, fetch 1 row to get available columns
+        const { data: sampleData, error: sampleError } = await supabase.from('attendees').select('*').limit(1);
+        if (sampleError) throw sampleError;
+
+        let columnsToSelect = '*';
+        if (sampleData && sampleData.length > 0) {
+          const availableColumns = Object.keys(sampleData[0]);
+          const excludeColumns = new Set(['photoUrl', 'paymentHotelProofUrl', 'paymentLegalisirProofUrl', 'paymentSashProofUrl']);
+          columnsToSelect = availableColumns.filter(c => !excludeColumns.has(c)).join(',');
+        }
+
+        const { data, error } = await supabase.from('attendees').select(columnsToSelect);
         if (!error && data) {
           const dict: Record<string, AttendeeData> = {};
           for (const item of data) {
@@ -186,9 +190,11 @@ export const store = {
              dict[item.id] = att;
           }
           return dict;
+        } else if (error) {
+          throw error;
         }
       } catch (e) {
-        console.error('Supabase exception:', e);
+        console.error('Supabase get all exception:', e);
       }
     }
     

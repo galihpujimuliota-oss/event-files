@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toPng } from 'html-to-image';
 import { store, AttendeeData } from '../store/store';
+import { ALLOWED_ATTENDEES } from '../store/allowedAttendees';
 
 export default function AdminScanner() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function AdminScanner() {
     navigate('/admin-login');
   };
 
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'UNREGISTERED' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
   const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH'>('HOTEL');
   const [rekapSearch, setRekapSearch] = useState('');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
@@ -205,7 +206,7 @@ export default function AdminScanner() {
     // Auto-poll local db/supabase to ensure dashboard is always in sync with registrations
     const interval = setInterval(() => {
       updateStats();
-    }, 5000);
+    }, 15000);
     
     return () => clearInterval(interval);
   }, [activeTab]);
@@ -378,6 +379,9 @@ export default function AdminScanner() {
           </button>
           <button onClick={() => setActiveTab('DATA')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'DATA' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
             <Table2 className="w-4 h-4"/> DATA
+          </button>
+          <button onClick={() => setActiveTab('UNREGISTERED')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'UNREGISTERED' ? 'bg-amber-50 text-amber-700 border-b-2 border-amber-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+            <UserX className="w-4 h-4"/> BELUM REG
           </button>
           <button onClick={() => setActiveTab('QR')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'QR' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
             <QrCode className="w-4 h-4"/> QRs
@@ -768,19 +772,52 @@ export default function AdminScanner() {
                   </button>
                 </div>
 
-                {/* Search Bar for the active category */}
-                <div className="relative max-w-md border border-slate-200 rounded-xl overflow-hidden flex items-center bg-white transition-shadow focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 shadow-sm">
-                  <Search className="w-4 h-4 text-slate-400 ml-4 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder={`Cari nama atau NPK...`}
-                    className="w-full px-3 py-2.5 outline-none text-xs placeholder:text-slate-400 font-medium"
-                    value={rekapSearch}
-                    onChange={(e) => setRekapSearch(e.target.value)}
-                  />
-                  {rekapSearch && (
-                    <button onClick={() => setRekapSearch('')} className="absolute right-4 text-xs font-bold text-slate-405 hover:text-slate-600">Batal</button>
-                  )}
+                {/* Search Bar and Export buttons for the active category */}
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                  <div className="relative w-full max-w-md border border-slate-200 rounded-xl overflow-hidden flex items-center bg-white transition-shadow focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 shadow-sm">
+                    <Search className="w-4 h-4 text-slate-400 ml-4 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder={`Cari nama atau NPK...`}
+                      className="w-full px-3 py-2.5 outline-none text-xs placeholder:text-slate-400 font-medium"
+                      value={rekapSearch}
+                      onChange={(e) => setRekapSearch(e.target.value)}
+                    />
+                    {rekapSearch && (
+                      <button onClick={() => setRekapSearch('')} className="absolute right-4 text-xs font-bold text-slate-405 hover:text-slate-600">Batal</button>
+                    )}
+                  </div>
+                  <button onClick={() => {
+                     const headers = ["NO", "NAMA LENGKAP", "NPK", "NO WA", "PENGIRIM", "BUKTI ID"];
+                     const rows = filteredRekap.map((att, i) => {
+                       let detailsStr = '';
+                       if (rekapTab === 'HOTEL') {
+                         detailsStr = att.paymentHotelAccountName ? `${att.paymentHotelBank} an. ${att.paymentHotelAccountName} (${att.paymentHotelAccountNumber})` : '';
+                       } else if (rekapTab === 'LEGALISIR') {
+                         detailsStr = att.paymentLegalisirAccountName ? `${att.paymentLegalisirBank} an. ${att.paymentLegalisirAccountName} (${att.paymentLegalisirAccountNumber})` : '';
+                       } else if (rekapTab === 'SASH') {
+                         detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
+                       }
+                       return [
+                         i + 1,
+                         `"${att.fullName}"`,
+                         `"${att.npk}"`,
+                         `"${att.phoneWA}"`,
+                         `"${detailsStr}"`,
+                         `"${att.id}"`
+                       ];
+                     });
+                     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+                     const encodedUri = encodeURI(csvContent);
+                     const link = document.createElement("a");
+                     link.setAttribute("href", encodedUri);
+                     link.setAttribute("download", `Rekap_Pembayaran_${rekapTab}_${new Date().toISOString().slice(0,10)}.csv`);
+                     document.body.appendChild(link);
+                     link.click();
+                     document.body.removeChild(link);
+                  }} className="shrink-0 flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3 py-2.5 rounded-xl text-xs font-bold transition-colors">
+                    <Download className="w-4 h-4" /> Unduh Berkas Data (CSV)
+                  </button>
                 </div>
 
                 {/* Table for active category */}
@@ -1058,6 +1095,108 @@ export default function AdminScanner() {
                       <tr>
                         <td colSpan={5} className="px-5 py-12 text-center text-slate-400 font-medium tracking-wide">
                           {attendeesList.length > 0 ? 'TIDAK ADA DATA.' : 'BELUM ADA DATA PESERTA.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          );
+        })()}
+
+        {activeTab === 'UNREGISTERED' && (() => {
+          // Find NPKs inside ALLOWED_ATTENDEES that are NOT in attendeesList
+          const registeredNpks = new Set(attendeesList.map(a => a.npk));
+          let unregisteredList = Object.entries(ALLOWED_ATTENDEES)
+            .filter(([npk]) => !registeredNpks.has(npk))
+            .map(([npk, data]) => ({ npk, ...data }));
+
+          if (rekapSearch) {
+             const q = rekapSearch.toLowerCase();
+             unregisteredList = unregisteredList.filter(u => 
+                u.fullName.toLowerCase().includes(q) ||
+                u.studyField.toLowerCase().includes(q) ||
+                u.npk.toLowerCase().includes(q)
+             );
+          }
+
+          const exportToCsv = () => {
+             const headers = ["NO", "NAMA LENGKAP", "NPK", "BIDANG STUDI"];
+             const rows = unregisteredList.map((u, i) => [
+               i + 1,
+               `"${u.fullName}"`,
+               `"${u.npk}"`,
+               `"${u.studyField}"`
+             ]);
+             const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+             const encodedUri = encodeURI(csvContent);
+             const link = document.createElement("a");
+             link.setAttribute("href", encodedUri);
+             link.setAttribute("download", `Rekap_Belum_Registrasi_${new Date().toISOString().slice(0,10)}.csv`);
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+          };
+
+          return (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-amber-50/50">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                    <UserX className="w-4 h-4 text-amber-600" />
+                    PESERTA BELUM REGISTRASI
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Daftar peserta yang ada di file acuan namun belum melakukan registrasi online ({unregisteredList.length} orang).</p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" />
+                      <input 
+                        type="text" 
+                        placeholder="Cari NPK/Nama/Bidang..." 
+                        className="w-full pl-9 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-medium placeholder-slate-400"
+                        value={rekapSearch}
+                        onChange={(e) => setRekapSearch(e.target.value)}
+                      />
+                      {rekapSearch && (
+                        <button onClick={() => setRekapSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                           <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={exportToCsv} className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">
+                      <Download className="w-4 h-4" /> Unduh Berkas (CSV)
+                    </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto max-h-[500px]">
+                <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+                  <thead className="bg-[#0f172a] text-white sticky top-0 z-10 shadow-sm">
+                    <tr>
+                      <th className="px-5 py-3 w-16 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">NO</th>
+                      <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">NAMA LENGKAP</th>
+                      <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 w-48">BIDANG STUDI</th>
+                      <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">NPK / AKUN SIAGA</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium bg-white">
+                    {unregisteredList.map((u, idx) => (
+                      <tr key={u.npk} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-4 text-slate-400 font-mono text-xs text-center">{idx + 1}</td>
+                        <td className="px-5 py-4 font-bold text-slate-800 uppercase">{u.fullName}</td>
+                        <td className="px-5 py-4">
+                           <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md text-[10px] font-bold uppercase tracking-wider border border-amber-200">
+                             {u.studyField}
+                           </span>
+                        </td>
+                        <td className="px-5 py-4 font-mono text-slate-600 font-bold text-center">{u.npk}</td>
+                      </tr>
+                    ))}
+                    {unregisteredList.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-12 text-center text-slate-400 font-medium tracking-wide">
+                          {rekapSearch ? 'TIDAK ADA HASIL PENCARIAN.' : 'SEMUA PESERTA TELAH MELAKUKAN REGISTRASI.'}
                         </td>
                       </tr>
                     )}
