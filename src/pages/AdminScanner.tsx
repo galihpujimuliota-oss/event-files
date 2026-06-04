@@ -188,16 +188,23 @@ export default function AdminScanner() {
 
   const [stats, setStats] = useState({ total: 0, luring: 0, daring: 0, verified: 0 });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const updateStats = async () => {
-    const allDict = await store.getAllAttendees();
-    const all = Object.values(allDict).filter(a => a.isRegistered); // Pastikan merekap yang udah register final
-    setAttendeesList(all);
-    setStats({
-      total: all.length,
-      daring: all.filter(a => a.attendanceType === 'DARING').length,
-      luring: all.filter(a => a.attendanceType === 'LURING').length,
-      verified: all.filter(a => a.status === 'VERIFIED').length,
-    });
+    setIsRefreshing(true);
+    try {
+      const allDict = await store.getAllAttendees();
+      const all = Object.values(allDict).filter(a => a.isRegistered); // Pastikan merekap yang udah register final
+      setAttendeesList(all);
+      setStats({
+        total: all.length,
+        daring: all.filter(a => a.attendanceType === 'DARING').length,
+        luring: all.filter(a => a.attendanceType === 'LURING').length,
+        verified: all.filter(a => a.status === 'VERIFIED').length,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -353,7 +360,10 @@ export default function AdminScanner() {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <QrCode className="w-6 h-6 text-teal-300" />
-            <span className="font-bold tracking-widest text-lg">SYS.ADMIN_TERMINAL</span>
+            <span className="font-bold tracking-widest text-lg flex items-center gap-2">
+              SYS.ADMIN_TERMINAL
+              {isRefreshing && <Loader2 className="w-4 h-4 text-teal-300 animate-spin" />}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             {!isSupabaseConnected && (

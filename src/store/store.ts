@@ -163,51 +163,57 @@ export const store = {
   },
   
   async getAllAttendees(): Promise<Record<string, AttendeeData>> {
+    let result: Record<string, AttendeeData> = {};
+
+    // 1. Fetch from Local Node API first (fallback database and local cache)
+    try {
+      const res = await fetch('/api/attendees');
+      if (res.ok) {
+        result = await res.json();
+      } else {
+        result = getLocalDb();
+      }
+    } catch(e) {
+      console.error('Local API exception:', e);
+      result = getLocalDb();
+    }
+
+    // 2. Fetch from Supabase and MERGE with local result (Supabase data takes precedence)
     if (supabase) {
       try {
         // Exclude bulk base64 image data dynamically to handle both schema mismatch and OOM.
-        // First, fetch 1 row to get available columns
         const { data: sampleData, error: sampleError } = await supabase.from('attendees').select('*').limit(1);
-        if (sampleError) throw sampleError;
-
-        let columnsToSelect = '*';
-        if (sampleData && sampleData.length > 0) {
-          const availableColumns = Object.keys(sampleData[0]);
-          const excludeColumns = new Set(['photoUrl', 'paymentHotelProofUrl', 'paymentLegalisirProofUrl', 'paymentSashProofUrl']);
-          columnsToSelect = availableColumns.filter(c => !excludeColumns.has(c)).join(',');
-        }
-
-        const { data, error } = await supabase.from('attendees').select(columnsToSelect);
-        if (!error && data) {
-          const dict: Record<string, AttendeeData> = {};
-          for (const item of data) {
-             const att = item as any;
-             // Polyfill properties so that AdminScanner can still count them
-             if (att.paymentHotelBank) att.paymentHotelProofUrl = 'yes';
-             if (att.paymentLegalisirBank) att.paymentLegalisirProofUrl = 'yes';
-             if (att.paymentSashBank) att.paymentSashProofUrl = 'yes';
-             if (att.fullName) att.photoUrl = 'yes'; // best approximation without url for list view
-             dict[item.id] = att;
+        if (!sampleError) {
+          let columnsToSelect = '*';
+          if (sampleData && sampleData.length > 0) {
+            const availableColumns = Object.keys(sampleData[0]);
+            const excludeColumns = new Set(['photoUrl', 'paymentHotelProofUrl', 'paymentLegalisirProofUrl', 'paymentSashProofUrl']);
+            columnsToSelect = availableColumns.filter(c => !excludeColumns.has(c)).join(',');
           }
-          return dict;
-        } else if (error) {
-          throw error;
+
+          const { data, error } = await supabase.from('attendees').select(columnsToSelect);
+          if (!error && data) {
+            for (const item of data) {
+               const att = item as any;
+               // Polyfill properties so that AdminScanner can still count them
+               if (att.paymentHotelBank) att.paymentHotelProofUrl = 'yes';
+               if (att.paymentLegalisirBank) att.paymentLegalisirProofUrl = 'yes';
+               if (att.paymentSashBank) att.paymentSashProofUrl = 'yes';
+               if (att.fullName) att.photoUrl = 'yes'; // best approximation without url for list view
+               result[item.id] = att;
+            }
+          } else if (error) {
+            console.error('Supabase get all error:', error);
+          }
+        } else {
+           console.error('Supabase sample error:', sampleError);
         }
       } catch (e) {
         console.error('Supabase get all exception:', e);
       }
     }
     
-    // API fallback
-    try {
-      const res = await fetch('/api/attendees');
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch(e) {
-      console.error(e);
-    }
-    return getLocalDb();
+    return result;
   },
 
   async getAttendeeById(id: string): Promise<AttendeeData | null> {
