@@ -374,7 +374,7 @@ export default function AdminScanner() {
         att.city || '',
         att.address || '',
         att.attendanceType || '',
-        att.wantsSash ? 'Ya' : 'Tidak',
+        att.paymentSashText || (att.wantsSash ? 'YA' : 'TIDAK'),
         att.paymentSashAccountName || '',
         att.paymentSashAccountNumber || '',
         att.paymentSashBank || '',
@@ -580,6 +580,7 @@ export default function AdminScanner() {
             } else if (category === 'SASH') {
               targetList = listSelempang;
               catName = 'Pembayaran_Selempang';
+              headers = ['No', 'Nama Lengkap', 'NPK / Akun Siaga', 'Pesan Selempang', 'No WhatsApp', 'Bank Rekening Pengirim', 'Atas Nama Rekening Pengirim', 'No Rekening Pengirim', 'URL Bukti Pembayaran'];
             }
 
             const escapeCsvField = (val: any) => {
@@ -616,16 +617,25 @@ export default function AdminScanner() {
                   proofUrl = att.paymentSashProofUrl || '';
                 }
 
-                return [
+                const row = [
                   String(idx + 1),
                   att.fullName,
                   att.npk,
+                ];
+
+                if (category === 'SASH') {
+                  row.push(att.paymentSashText || '');
+                }
+
+                row.push(
                   att.phoneWA,
                   bank,
                   acctName,
                   acctNum,
                   proofUrl
-                ].map(escapeCsvField).join(',');
+                );
+
+                return row.map(escapeCsvField).join(',');
               })
             ];
 
@@ -938,6 +948,11 @@ export default function AdminScanner() {
                                 {detailsStr && (
                                   <div className="text-[10px] text-slate-500 mt-1 font-medium bg-slate-50 border border-slate-100 rounded inline-block px-1.5 py-0.5">
                                     Pengirim: {detailsStr}
+                                  </div>
+                                )}
+                                {rekapTab === 'SASH' && att.paymentSashText && (
+                                  <div className="text-[10px] mt-1 block">
+                                    <span className="font-bold text-teal-700 bg-teal-50 border border-teal-100 px-1.5 py-0.5 rounded">Tulisan: "{att.paymentSashText}"</span>
                                   </div>
                                 )}
                               </td>
@@ -2030,6 +2045,7 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                           {selectedAttendee.wantsSash ? (
                             <div className="space-y-4">
                               <div className="grid grid-cols-1 gap-2 text-xs text-slate-700">
+                                <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">Tulisan / Pesan Selempang</span><span className="font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded inline-block mb-1 border border-teal-100">{selectedAttendee.paymentSashText || '-'}</span></p>
                                 <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">Bank Pengirim</span>{selectedAttendee.paymentSashBank || '-'}</p>
                                 <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">No Rekening</span><span className="font-mono">{selectedAttendee.paymentSashAccountNumber || '-'}</span></p>
                                 <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">Atas Nama</span>{selectedAttendee.paymentSashAccountName || '-'}</p>

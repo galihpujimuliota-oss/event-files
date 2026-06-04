@@ -32,6 +32,7 @@ export type AttendeeData = {
   paymentLegalisirAccountNumber?: string;
   paymentLegalisirProofUrl?: string | null;
   wantsSash?: boolean;
+  paymentSashText?: string;
   paymentSashBank?: string;
   paymentSashAccountName?: string;
   paymentSashAccountNumber?: string;
