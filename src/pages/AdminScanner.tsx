@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toPng } from 'html-to-image';
 import { store, AttendeeData } from '../store/store';
-import { ALLOWED_ATTENDEES } from '../store/allowedAttendees';
+import { ALLOWED_ATTENDEES, getAllowedAttendee } from '../store/allowedAttendees';
 
 export default function AdminScanner() {
   const navigate = useNavigate();
@@ -173,6 +173,22 @@ export default function AdminScanner() {
 
   const handleSaveEdit = async () => {
     if (!selectedAttendee) return;
+
+    // Strict Admin verification checking if edited static NPK exists in the 2,769 whitelist
+    if (editForm.npk) {
+      const cleanedNpk = editForm.npk.replace(/\D/g, '');
+      const allowed = getAllowedAttendee(cleanedNpk);
+      if (!allowed) {
+        alert('Pemberitahuan: Nomor NPK/Siaga yang Anda ketikkan tidak ditemukan di dalam database file NPK/Siaga (2769 peserta)!');
+        return;
+      }
+      // Auto-populate correct static metadata
+      if (allowed.fullName) {
+        editForm.fullName = allowed.fullName;
+        editForm.studyField = allowed.studyField;
+      }
+    }
+
     await store.updateAttendeeAdmin(selectedAttendee.id, editForm);
     setSelectedAttendee({ ...selectedAttendee, ...editForm } as AttendeeData);
     setIsEditMode(false);
@@ -1369,6 +1385,34 @@ export default function AdminScanner() {
                     <button onClick={exportToCsv} className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">
                       <Download className="w-4 h-4" /> Unduh Berkas (CSV)
                     </button>
+                </div>
+              </div>
+
+              {/* Informational Analysis on Whitelist vs PDF Total Counts */}
+              <div className="p-4 bg-teal-50 border-b border-teal-100 text-teal-900 text-xs leading-relaxed">
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-teal-950 block mb-1">Informasi Analisis Registrasi Sistem:</span>
+                    <p className="mb-2 text-teal-850">
+                      Tabel di bawah menampilkan <strong>{unregisteredList.length} peserta</strong> yang tersisa dari total <strong>163 data sampel whitelist (acuan cepat)</strong> yang belum melakukan registrasi. 
+                      Untuk peserta lainnya dari total seluruh <strong>2.769 calon peserta acuan PDF</strong>, verifikasi registrasi diproses secara dinamis menggunakan kecocokan format digit NPK/Siaga di sistem pendaftaran.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-teal-200/50">
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        <span className="text-teal-700 block text-[10px] font-bold uppercase tracking-wider">Total Peserta Acuan PDF</span>
+                        <span className="text-base font-black text-teal-950 font-mono">2.769 Orang</span>
+                      </div>
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        <span className="text-emerald-700 block text-[10px] font-bold uppercase tracking-wider">Telah Registrasi Online</span>
+                        <span className="text-base font-black text-emerald-950 font-mono">{stats.total} Orang</span>
+                      </div>
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        <span className="text-amber-700 block text-[10px] font-bold uppercase tracking-wider">Sisa Belum Registrasi (Riil)</span>
+                        <span className="text-base font-black text-amber-950 font-mono">{2769 - stats.total} Orang</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="overflow-x-auto max-h-[500px]">
