@@ -31,6 +31,29 @@ export default function AdminScanner() {
   const [searchQuery, setSearchQuery] = useState('');
   const isScanningRef = useRef(true);
 
+  // Pagination states to prevent browser OOM/crash with 2,800+ records
+  const [dataPage, setDataPage] = useState(1);
+  const [rekapPage, setRekapPage] = useState(1);
+  const [unregisteredPage, setUnregisteredPage] = useState(1);
+  const [qrPage, setQrPage] = useState(1);
+
+  // Reset page numbers when search keywords change to prevent blank-screen bugs
+  useEffect(() => {
+    setDataPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setRekapPage(1);
+  }, [rekapSearch, rekapTab]);
+
+  useEffect(() => {
+    setUnregisteredPage(1);
+  }, [rekapSearch]);
+
+  useEffect(() => {
+    setQrPage(1);
+  }, [searchQuery]);
+
   const [broadcastSubject, setBroadcastSubject] = useState('Pengingat: Yudisium & Pengukuhan Guru Profesional PPG Dalam Jabatan Batch 4 Tahun 2025');
   const [broadcastBody, setBroadcastBody] = useState(`Yth. Bapak/Bapak/Ibu Peserta,\n\nBerikut adalah instruksi acara Yudisium & Pengukuhan Guru Profesional PPG Dalam Jabatan Batch 4 Tahun 2025 FITK - LPTK UIN Maulana Malik Ibrahim Malang:\n\n📅 Hari/Tanggal: \n⏰ Waktu:\n📍 Tempat:\n📹 Link Streaming: http://\n\nHarap hadir tepat waktu dan membawa Access Pass QR Code Anda.\n\nTerima kasih.\nPanitia`);
   
@@ -319,42 +342,56 @@ export default function AdminScanner() {
       'Tipe Kehadiran', 'Pesan Selempang', 'Rekening Selempang', 'No Rek. Selempang', 'Bank Selempang',
       'Rekening Hotel', 'No Rek. Hotel', 'Bank Hotel', 'Rekening Legalisir', 'No Rek. Legalisir', 'Bank Legalisir', 'Pengambilan Serdik', 'Status'
     ];
-    const rows = attendeesList.map(att => [
-      att.id,
-      `"${att.fullName}"`,
-      att.npk,
-      att.email || '',
-      `'${att.phoneWA}'`,
-      `"${att.schoolName}"`,
-      `"${att.studyField}"`,
-      `"${att.province}"`,
-      `"${att.city}"`,
-      `"${att.address}"`,
-      att.attendanceType || '',
-      att.wantsSash ? 'Ya' : 'Tidak',
-      `"${att.paymentSashAccountName || ''}"`,
-      `'${att.paymentSashAccountNumber || ''}'`,
-      `"${att.paymentSashBank || ''}"`,
-      `"${att.paymentHotelAccountName || ''}"`,
-      `'${att.paymentHotelAccountNumber || ''}'`,
-      `"${att.paymentHotelBank || ''}"`,
-      `"${att.paymentLegalisirAccountName || ''}"`,
-      `'${att.paymentLegalisirAccountNumber || ''}'`,
-      `"${att.paymentLegalisirBank || ''}"`,
-      att.certificateRetrievalMethod || '',
-      att.status
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(',') + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
+
+    const escapeCsvField = (val: any) => {
+      let str = val === undefined || val === null ? '' : String(val);
+      str = str.replace(/\r?\n|\r/g, " ");
+      if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+        str = str.replace(/"/g, '""');
+        return `"${str}"`;
+      }
+      return `"${str}"`;
+    };
+
+    const csvRows = [
+      headers.map(escapeCsvField).join(','),
+      ...attendeesList.map(att => [
+        att.id,
+        att.fullName,
+        att.npk,
+        att.email || '',
+        att.phoneWA || '',
+        att.schoolName || '',
+        att.studyField || '',
+        att.province || '',
+        att.city || '',
+        att.address || '',
+        att.attendanceType || '',
+        att.wantsSash ? 'Ya' : 'Tidak',
+        att.paymentSashAccountName || '',
+        att.paymentSashAccountNumber || '',
+        att.paymentSashBank || '',
+        att.paymentHotelAccountName || '',
+        att.paymentHotelAccountNumber || '',
+        att.paymentHotelBank || '',
+        att.paymentLegalisirAccountName || '',
+        att.paymentLegalisirAccountNumber || '',
+        att.paymentLegalisirBank || '',
+        att.certificateRetrievalMethod || '',
+        att.status
+      ].map(escapeCsvField).join(','))
+    ];
+
+    const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.href = url;
     link.setAttribute("download", `Data_Peserta_Yudisium_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -514,6 +551,14 @@ export default function AdminScanner() {
 
           const filteredRekap = getFilteredRekapList();
 
+          const itemsPerPage = 50;
+          const totalRekapItems = filteredRekap.length;
+          const totalRekapPages = Math.ceil(totalRekapItems / itemsPerPage);
+          const currentRekapPage = Math.min(rekapPage, totalRekapPages || 1);
+          const startRekapIndex = (currentRekapPage - 1) * itemsPerPage;
+          const endRekapIndex = startRekapIndex + itemsPerPage;
+          const paginatedRekap = filteredRekap.slice(startRekapIndex, endRekapIndex);
+
           const handleExportCategoryCSV = (category: 'HOTEL' | 'LEGALISIR' | 'SASH') => {
             let targetList = [];
             let catName = '';
@@ -530,53 +575,63 @@ export default function AdminScanner() {
               catName = 'Pembayaran_Selempang';
             }
 
-            const rows = targetList.map((att, idx) => {
-              let bank = '';
-              let acctName = '';
-              let acctNum = '';
-              let proofUrl = '';
-
-              if (category === 'HOTEL') {
-                bank = att.paymentHotelBank || '';
-                acctName = att.paymentHotelAccountName || '';
-                acctNum = att.paymentHotelAccountNumber || '';
-                proofUrl = att.paymentHotelProofUrl || '';
-              } else if (category === 'LEGALISIR') {
-                bank = att.paymentLegalisirBank || '';
-                acctName = att.paymentLegalisirAccountName || '';
-                acctNum = att.paymentLegalisirAccountNumber || '';
-                proofUrl = att.paymentLegalisirProofUrl || '';
-              } else if (category === 'SASH') {
-                bank = att.paymentSashBank || '';
-                acctName = att.paymentSashAccountName || '';
-                acctNum = att.paymentSashAccountNumber || '';
-                proofUrl = att.paymentSashProofUrl || '';
+            const escapeCsvField = (val: any) => {
+              let str = val === undefined || val === null ? '' : String(val);
+              str = str.replace(/\r?\n|\r/g, " ");
+              if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+                str = str.replace(/"/g, '""');
               }
+              return `"${str}"`;
+            };
 
-              return [
-                idx + 1,
-                `"${att.fullName}"`,
-                `'${att.npk}'`,
-                `'${att.phoneWA}'`,
-                `"${bank}"`,
-                `"${acctName}"`,
-                `'${acctNum}'`,
-                `"${proofUrl}"`
-              ];
-            });
+            const csvRows = [
+              headers.map(escapeCsvField).join(','),
+              ...targetList.map((att, idx) => {
+                let bank = '';
+                let acctName = '';
+                let acctNum = '';
+                let proofUrl = '';
 
-            // Using BOM \uFEFF to make sure Excel opens the CSV correctly with UTF-8 encoding
-            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-              + headers.join(',') + "\n"
-              + rows.map(e => e.join(",")).join("\n");
-              
-            const encodedUri = encodeURI(csvContent);
+                if (category === 'HOTEL') {
+                  bank = att.paymentHotelBank || '';
+                  acctName = att.paymentHotelAccountName || '';
+                  acctNum = att.paymentHotelAccountNumber || '';
+                  proofUrl = att.paymentHotelProofUrl || '';
+                } else if (category === 'LEGALISIR') {
+                  bank = att.paymentLegalisirBank || '';
+                  acctName = att.paymentLegalisirAccountName || '';
+                  acctNum = att.paymentLegalisirAccountNumber || '';
+                  proofUrl = att.paymentLegalisirProofUrl || '';
+                } else if (category === 'SASH') {
+                  bank = att.paymentSashBank || '';
+                  acctName = att.paymentSashAccountName || '';
+                  acctNum = att.paymentSashAccountNumber || '';
+                  proofUrl = att.paymentSashProofUrl || '';
+                }
+
+                return [
+                  String(idx + 1),
+                  att.fullName,
+                  att.npk,
+                  att.phoneWA,
+                  bank,
+                  acctName,
+                  acctNum,
+                  proofUrl
+                ].map(escapeCsvField).join(',');
+              })
+            ];
+
+            const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
+            link.href = url;
             link.setAttribute("download", `Rekap_${catName}_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
           };
 
           const copyAllWAOfActiveTab = () => {
@@ -883,7 +938,7 @@ export default function AdminScanner() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        {filteredRekap.map((att, index) => {
+                        {paginatedRekap.map((att, index) => {
                           let proofUrl = '';
                           let detailsStr = '';
                           if (rekapTab === 'HOTEL') {
@@ -899,7 +954,7 @@ export default function AdminScanner() {
 
                           return (
                             <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-4 py-3 text-slate-400 font-mono text-center">{index + 1}</td>
+                              <td className="px-4 py-3 text-slate-400 font-mono text-center">{startRekapIndex + index + 1}</td>
                               <td className="px-4 py-3">
                                 <div className="font-bold text-slate-800">{att.fullName}</div>
                                 {detailsStr && (
@@ -949,6 +1004,53 @@ export default function AdminScanner() {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Rekap Pagination Controls */}
+                  {totalRekapPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-slate-100 p-3 bg-slate-50/50 gap-4 flex-wrap">
+                      <p className="text-[11px] text-slate-500 font-mono font-medium">
+                        Menampilkan {startRekapIndex + 1} - {Math.min(endRekapIndex, totalRekapItems)} dari {totalRekapItems} data
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={currentRekapPage === 1}
+                          onClick={() => setRekapPage(prev => Math.max(1, prev - 1))}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                        >
+                          Sebelumnya
+                        </button>
+                        <div className="hidden xs:flex items-center gap-1">
+                          {Array.from({ length: totalRekapPages }, (_, i) => i + 1).map(p => {
+                            if (totalRekapPages > 5 && Math.abs(p - currentRekapPage) > 1 && p !== 1 && p !== totalRekapPages) {
+                              if (p === 2 || p === totalRekapPages - 1) {
+                                return <span key={p} className="text-slate-400 text-xs px-1">...</span>;
+                              }
+                              return null;
+                            }
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => setRekapPage(p)}
+                                className={`w-7 h-7 rounded-lg text-[11px] font-bold transition-all ${p === currentRekapPage ? 'bg-teal-600 text-white font-bold' : 'border border-slate-200 text-slate-600 bg-white hover:bg-slate-50'}`}
+                              >
+                                {p}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={currentRekapPage === totalRekapPages}
+                          onClick={() => setRekapPage(prev => Math.min(totalRekapPages, prev + 1))}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                        >
+                          Selanjutnya
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1074,6 +1176,14 @@ export default function AdminScanner() {
             att.npk.includes(searchQuery)
           );
 
+          const itemsPerPage = 50;
+          const totalDataItems = filteredAttendees.length;
+          const totalDataPages = Math.ceil(totalDataItems / itemsPerPage);
+          const currentDataPage = Math.min(dataPage, totalDataPages || 1);
+          const startDataIndex = (currentDataPage - 1) * itemsPerPage;
+          const endDataIndex = startDataIndex + itemsPerPage;
+          const paginatedAttendees = filteredAttendees.slice(startDataIndex, endDataIndex);
+
           return (
             <motion.div key="data" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="bg-white border text-sm border-slate-200 rounded-xl overflow-hidden shadow-sm">
               <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1103,7 +1213,7 @@ export default function AdminScanner() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredAttendees.map((att) => (
+                    {paginatedAttendees.map((att) => (
                       <tr key={att.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-5 py-4">
                           <p className="font-bold text-slate-800">{att.fullName}</p>
@@ -1150,6 +1260,53 @@ export default function AdminScanner() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Data Pagination Controls */}
+              {totalDataPages > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-slate-50/50 gap-4 flex-wrap">
+                  <p className="text-xs text-slate-505 font-medium font-mono">
+                    Menampilkan {startDataIndex + 1} - {Math.min(endDataIndex, totalDataItems)} dari {totalDataItems} data
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={currentDataPage === 1}
+                      onClick={() => setDataPage(prev => Math.max(1, prev - 1))}
+                      className="px-3 py-1.5 rounded-lg border border-slate-205 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
+                    >
+                      Sebelumnya
+                    </button>
+                    <div className="hidden xs:flex items-center gap-1">
+                      {Array.from({ length: totalDataPages }, (_, i) => i + 1).map(p => {
+                        if (totalDataPages > 5 && Math.abs(p - currentDataPage) > 1 && p !== 1 && p !== totalDataPages) {
+                          if (p === 2 || p === totalDataPages - 1) {
+                            return <span key={p} className="text-slate-400 text-xs px-1">...</span>;
+                          }
+                          return null;
+                        }
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setDataPage(p)}
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${p === currentDataPage ? 'bg-teal-600 text-white font-bold' : 'border border-slate-200 text-slate-600 bg-white hover:bg-slate-50'}`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={currentDataPage === totalDataPages}
+                      onClick={() => setDataPage(prev => Math.min(totalDataPages, prev + 1))}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
+                    >
+                      Selanjutnya
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           );
         })()}
@@ -1170,22 +1327,46 @@ export default function AdminScanner() {
              );
           }
 
+          const itemsPerPage = 50;
+          const totalUnregisteredItems = unregisteredList.length;
+          const totalUnregisteredPages = Math.ceil(totalUnregisteredItems / itemsPerPage);
+          const currentUnregisteredPage = Math.min(unregisteredPage, totalUnregisteredPages || 1);
+          const startUnregisteredIndex = (currentUnregisteredPage - 1) * itemsPerPage;
+          const endUnregisteredIndex = startUnregisteredIndex + itemsPerPage;
+          const paginatedUnregistered = unregisteredList.slice(startUnregisteredIndex, endUnregisteredIndex);
+
           const exportToCsv = () => {
              const headers = ["NO", "NAMA LENGKAP", "NPK", "BIDANG STUDI"];
-             const rows = unregisteredList.map((u, i) => [
-               i + 1,
-               `"${u.fullName}"`,
-               `"${u.npk}"`,
-               `"${u.studyField}"`
-             ]);
-             const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-             const encodedUri = encodeURI(csvContent);
+             
+             const escapeCsvField = (val: any) => {
+               let str = val === undefined || val === null ? '' : String(val);
+               str = str.replace(/\r?\n|\r/g, " ");
+               if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+                 str = str.replace(/"/g, '""');
+               }
+               return `"${str}"`;
+             };
+
+             const csvRows = [
+               headers.map(escapeCsvField).join(','),
+               ...unregisteredList.map((u, i) => [
+                 String(i + 1),
+                 u.fullName,
+                 u.npk,
+                 u.studyField
+               ].map(escapeCsvField).join(','))
+             ];
+
+             const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+             const url = URL.createObjectURL(blob);
+             
              const link = document.createElement("a");
-             link.setAttribute("href", encodedUri);
+             link.href = url;
              link.setAttribute("download", `Rekap_Belum_Registrasi_${new Date().toISOString().slice(0,10)}.csv`);
              document.body.appendChild(link);
              link.click();
              document.body.removeChild(link);
+             URL.revokeObjectURL(url);
           };
 
           return (
@@ -1230,9 +1411,9 @@ export default function AdminScanner() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium bg-white">
-                    {unregisteredList.map((u, idx) => (
+                    {paginatedUnregistered.map((u, idx) => (
                       <tr key={u.npk} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-5 py-4 text-slate-400 font-mono text-xs text-center">{idx + 1}</td>
+                        <td className="px-5 py-4 text-slate-400 font-mono text-xs text-center">{startUnregisteredIndex + idx + 1}</td>
                         <td className="px-5 py-4 font-bold text-slate-800 uppercase">{u.fullName}</td>
                         <td className="px-5 py-4">
                            <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md text-[10px] font-bold uppercase tracking-wider border border-amber-200">
@@ -1252,18 +1433,78 @@ export default function AdminScanner() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Unregistered Pagination Controls */}
+              {totalUnregisteredPages > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-100 p-3 bg-slate-50/50 gap-4 flex-wrap">
+                  <p className="text-[11px] text-slate-500 font-mono font-medium">
+                    Menampilkan {startUnregisteredIndex + 1} - {Math.min(endUnregisteredIndex, totalUnregisteredItems)} dari {totalUnregisteredItems} data
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={currentUnregisteredPage === 1}
+                      onClick={() => setUnregisteredPage(prev => Math.max(1, prev - 1))}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                    >
+                      Sebelumnya
+                    </button>
+                    <div className="hidden xs:flex items-center gap-1">
+                      {Array.from({ length: totalUnregisteredPages }, (_, i) => i + 1).map(p => {
+                        if (totalUnregisteredPages > 5 && Math.abs(p - currentUnregisteredPage) > 1 && p !== 1 && p !== totalUnregisteredPages) {
+                          if (p === 2 || p === totalUnregisteredPages - 1) {
+                            return <span key={p} className="text-slate-400 text-xs px-1">...</span>;
+                          }
+                          return null;
+                        }
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setUnregisteredPage(p)}
+                            className={`w-7 h-7 rounded-lg text-[11px] font-bold transition-all ${p === currentUnregisteredPage ? 'bg-amber-600 text-white font-bold' : 'border border-slate-200 text-slate-600 bg-white hover:bg-slate-50'}`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={currentUnregisteredPage === totalUnregisteredPages}
+                      onClick={() => setUnregisteredPage(prev => Math.min(totalUnregisteredPages, prev + 1))}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                    >
+                      Selanjutnya
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           );
         })()}
 
         {activeTab === 'QR' && (() => {
+          const filteredQRList = attendeesList.filter(att => 
+            att.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            att.npk.includes(searchQuery)
+          );
+
+          const itemsPerPage = 40; // 40 items of QR is perfect for beautiful cards printing and fast bundle toPng
+          const totalQRItems = filteredQRList.length;
+          const totalQRPages = Math.ceil(totalQRItems / itemsPerPage);
+          const currentQRPage = Math.min(qrPage, totalQRPages || 1);
+          const startQRIndex = (currentQRPage - 1) * itemsPerPage;
+          const endQRIndex = startQRIndex + itemsPerPage;
+          const paginatedQRList = filteredQRList.slice(startQRIndex, endQRIndex);
+
           const handleDownloadAll = () => {
             const container = document.getElementById('qr-batch-container');
             if (container) {
               toPng(container, { cacheBust: true, backgroundColor: '#ffffff' })
                 .then((dataUrl) => {
                   const link = document.createElement('a');
-                  link.download = `Batch-QR-Codes-${new Date().toISOString().slice(0,10)}.png`;
+                  link.download = `Batch-QR-Codes-Halaman-${currentQRPage}-${new Date().toISOString().slice(0,10)}.png`;
                   link.href = dataUrl;
                   link.click();
                 })
@@ -1287,51 +1528,112 @@ export default function AdminScanner() {
 
           return (
             <motion.div key="qr" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
                 <div>
                   <h3 className="font-bold text-slate-800 text-lg tracking-tight">QR Code Generator</h3>
                   <p className="text-slate-500 text-sm">Unduh QR Code peserta untuk cetak ID Card (Name Tag).</p>
+                  
+                  {/* Local QR search bar */}
+                  <div className="relative max-w-sm w-full border border-slate-200 rounded-xl overflow-hidden flex items-center bg-white transition-shadow focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500 shadow-sm mt-3">
+                    <Search className="w-4 h-4 text-slate-400 ml-4 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Cari Nama atau NPK..."
+                      className="w-full px-3 py-2 outline-none text-xs placeholder:text-slate-400 font-medium"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                  <button onClick={() => window.print()} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 text-xs">
-                    <Printer className="w-4 h-4" /> Print (PDF)
+                <div className="flex gap-2 w-full md:w-auto self-end">
+                  <button onClick={() => window.print()} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 text-xs select-none">
+                    <Printer className="w-4 h-4" /> Print Halaman (PDF)
                   </button>
-                  <button onClick={handleDownloadAll} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 text-xs">
-                    <Download className="w-4 h-4" /> Download Semua
+                  <button onClick={handleDownloadAll} disabled={paginatedQRList.length === 0} className="disabled:opacity-50 flex-1 md:flex-none flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm active:scale-95 text-xs select-none">
+                    <Download className="w-4 h-4" /> Download Hal. {currentQRPage}
                   </button>
                 </div>
               </div>
 
-              {attendeesList.length === 0 ? (
+              {filteredQRList.length === 0 ? (
                 <div className="text-center py-16 text-slate-400 bg-slate-50/50 rounded-xl border border-slate-100 font-medium tracking-wide">
-                  BELUM ADA DATA.
+                  TIDAK ADA DATA QR YANG COCOK.
                 </div>
               ) : (
-                <div id="qr-batch-container" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-slate-50/50 rounded-xl border border-slate-100 p-4">
-                  {attendeesList.map((att) => (
-                    <div key={att.id} id={`qr-card-${att.id}`} className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center shadow-sm relative group overflow-hidden">
-                      <div className="mb-3 p-1">
-                        <QRCodeSVG value={att.id} size={110} level="H" />
+                <>
+                  <div id="qr-batch-container" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-slate-50/50 rounded-xl border border-slate-100 p-4">
+                    {paginatedQRList.map((att) => (
+                      <div key={att.id} id={`qr-card-${att.id}`} className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center shadow-sm relative group overflow-hidden">
+                        <div className="mb-3 p-1">
+                          <QRCodeSVG value={att.id} size={110} level="H" />
+                        </div>
+                        <p className="font-bold text-xs text-slate-800 line-clamp-1 w-full uppercase" title={att.fullName}>{att.fullName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono tracking-widest mt-0.5 mb-2">{att.npk}</p>
+                        <span className={`inline-block w-full py-1 rounded-[4px] text-[9px] font-bold tracking-widest uppercase ${att.attendanceType === 'LURING' ? 'bg-indigo-50 border border-indigo-100 text-indigo-700' : 'bg-teal-50 border border-teal-100 text-teal-700'}`}>
+                          {att.attendanceType}
+                        </span>
+                        
+                        {/* Hover Overlay for Download Single */}
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button 
+                            onClick={() => handleDownloadSingle(att.id, att.fullName)}
+                            className="bg-teal-600 text-white p-3 rounded-full shadow-md hover:scale-110 transition-transform"
+                            title="Download QR"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className="font-bold text-xs text-slate-800 line-clamp-1 w-full uppercase" title={att.fullName}>{att.fullName}</p>
-                      <p className="text-[10px] text-slate-400 font-mono tracking-widest mt-0.5 mb-2">{att.npk}</p>
-                      <span className={`inline-block w-full py-1 rounded-[4px] text-[9px] font-bold tracking-widest uppercase ${att.attendanceType === 'LURING' ? 'bg-indigo-50 border border-indigo-100 text-indigo-700' : 'bg-teal-50 border border-teal-100 text-teal-700'}`}>
-                        {att.attendanceType}
-                      </span>
-                      
-                      {/* Hover Overlay for Download Single */}
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button 
-                          onClick={() => handleDownloadSingle(att.id, att.fullName)}
-                          className="bg-teal-600 text-white p-3 rounded-full shadow-md hover:scale-110 transition-transform"
-                          title="Download QR"
+                    ))}
+                  </div>
+
+                  {/* QR Pagination Controls */}
+                  {totalQRPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-slate-100 mt-6 pt-4 gap-4 flex-wrap">
+                      <p className="text-[11px] text-slate-500 font-mono font-medium">
+                        Menampilkan {startQRIndex + 1} - {Math.min(endQRIndex, totalQRItems)} dari {totalQRItems} QR Code
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={currentQRPage === 1}
+                          onClick={() => setQrPage(prev => Math.max(1, prev - 1))}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
                         >
-                          <Download className="w-4 h-4" />
+                          Sebelumnya
+                        </button>
+                        <div className="hidden xs:flex items-center gap-1">
+                          {Array.from({ length: totalQRPages }, (_, i) => i + 1).map(p => {
+                            if (totalQRPages > 5 && Math.abs(p - currentQRPage) > 1 && p !== 1 && p !== totalQRPages) {
+                              if (p === 2 || p === totalQRPages - 1) {
+                                return <span key={p} className="text-slate-400 text-xs px-1">...</span>;
+                              }
+                              return null;
+                            }
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => setQrPage(p)}
+                                className={`w-7 h-7 rounded-lg text-[11px] font-bold transition-all ${p === currentQRPage ? 'bg-teal-600 text-white font-bold' : 'border border-slate-200 text-slate-600 bg-white hover:bg-slate-50'}`}
+                              >
+                                {p}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={currentQRPage === totalQRPages}
+                          onClick={() => setQrPage(prev => Math.min(totalQRPages, prev + 1))}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                        >
+                          Selanjutnya
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
               <style>{`
                 @media print {

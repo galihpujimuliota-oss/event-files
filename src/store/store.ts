@@ -201,9 +201,39 @@ export const store = {
           }
         }
 
-        const { data, error } = await supabase.from('attendees').select(columnsToSelect);
-        if (!error && data) {
-          for (const item of data) {
+        let allData: any[] = [];
+        let from = 0;
+        let to = 999;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('attendees')
+            .select(columnsToSelect)
+            .range(from, to);
+          
+          if (error) {
+            console.error('Supabase get all error inside range loop:', error);
+            break;
+          }
+          
+          if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            if (data.length < 1000) {
+              hasMore = false;
+            } else {
+              from += 1000;
+              to += 1000;
+              // Safety fallback: limit to 20,000 entries max to prevent excessive loops
+              if (from > 20000) hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        if (allData.length > 0) {
+          for (const item of allData) {
              const att = item as any;
              // Polyfill properties so that AdminScanner can still count them
              if (att.paymentHotelBank) att.paymentHotelProofUrl = 'yes';
@@ -212,8 +242,6 @@ export const store = {
              if (att.fullName) att.photoUrl = 'yes'; // best approximation without url for list view
              result[item.id] = att;
           }
-        } else if (error) {
-          console.error('Supabase get all error:', error);
         }
       } catch (e) {
         console.error('Supabase get all exception:', e);
