@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X } from 'lucide-react';
+import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -23,6 +23,7 @@ export default function AdminScanner() {
   };
 
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'UNREGISTERED' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH'>('HOTEL');
   const [rekapSearch, setRekapSearch] = useState('');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
@@ -379,29 +380,56 @@ export default function AdminScanner() {
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 pb-20 space-y-6">
-        {/* Tabs Menu */}
-        <div className="flex bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-wrap md:flex-nowrap">
-          <button onClick={() => setActiveTab('DASHBOARD')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'DASHBOARD' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <LayoutDashboard className="w-4 h-4"/> DASHBOARD
+        {/* Dropdown Menu */}
+        <div className="relative">
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="w-full bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold text-slate-700"
+          >
+            <div className="flex items-center gap-2">
+              {activeTab === 'DASHBOARD' && <><LayoutDashboard className="w-5 h-5 text-teal-600"/> DASHBOARD</>}
+              {activeTab === 'SCAN' && <><ScanFace className="w-5 h-5 text-teal-600"/> SCANNER</>}
+              {activeTab === 'DATA' && <><Table2 className="w-5 h-5 text-teal-600"/> DATA PENDAFTARAN</>}
+              {activeTab === 'UNREGISTERED' && <><UserX className="w-5 h-5 text-amber-600"/> BELUM REGISTRASI</>}
+              {activeTab === 'QR' && <><QrCode className="w-5 h-5 text-teal-600"/> CETAK QR CODES</>}
+              {activeTab === 'INFO' && <><BellRing className="w-5 h-5 text-teal-600"/> BROADCAST INFO</>}
+              {activeTab === 'SETTINGS' && <><Settings className="w-5 h-5 text-teal-600"/> SETTINGS</>}
+            </div>
+            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
           </button>
-          <button onClick={() => setActiveTab('SCAN')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'SCAN' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <ScanFace className="w-4 h-4"/> SCANNER
-          </button>
-          <button onClick={() => setActiveTab('DATA')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'DATA' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <Table2 className="w-4 h-4"/> DATA
-          </button>
-          <button onClick={() => setActiveTab('UNREGISTERED')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'UNREGISTERED' ? 'bg-amber-50 text-amber-700 border-b-2 border-amber-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <UserX className="w-4 h-4"/> BELUM REG
-          </button>
-          <button onClick={() => setActiveTab('QR')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'QR' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <QrCode className="w-4 h-4"/> QRs
-          </button>
-          <button onClick={() => setActiveTab('INFO')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'INFO' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <BellRing className="w-4 h-4"/> INFO
-          </button>
-          <button onClick={() => setActiveTab('SETTINGS')} className={`flex-1 min-w-[33%] md:min-w-0 py-3.5 text-xs sm:text-sm font-bold flex justify-center items-center gap-1.5 sm:gap-2 transition-colors ${activeTab === 'SETTINGS' ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <Settings className="w-4 h-4"/> SETTINGS
-          </button>
+          
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden flex flex-col"
+              >
+                <button onClick={() => { setActiveTab('DASHBOARD'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'DASHBOARD' ? 'bg-teal-50 text-teal-700 border-l-4 border-teal-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <LayoutDashboard className="w-5 h-5"/> DASHBOARD
+                </button>
+                <button onClick={() => { setActiveTab('SCAN'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'SCAN' ? 'bg-teal-50 text-teal-700 border-l-4 border-teal-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <ScanFace className="w-5 h-5"/> SCANNER
+                </button>
+                <button onClick={() => { setActiveTab('DATA'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'DATA' ? 'bg-teal-50 text-teal-700 border-l-4 border-teal-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <Table2 className="w-5 h-5"/> DATA PENDAFTARAN
+                </button>
+                <button onClick={() => { setActiveTab('UNREGISTERED'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'UNREGISTERED' ? 'bg-amber-50 text-amber-700 border-l-4 border-amber-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <UserX className="w-5 h-5"/> BELUM REGISTRASI
+                </button>
+                <button onClick={() => { setActiveTab('QR'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'QR' ? 'bg-teal-50 text-teal-700 border-l-4 border-teal-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <QrCode className="w-5 h-5"/> CETAK QR CODES
+                </button>
+                <button onClick={() => { setActiveTab('INFO'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'INFO' ? 'bg-teal-50 text-teal-700 border-l-4 border-teal-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <BellRing className="w-5 h-5"/> BROADCAST INFO
+                </button>
+                <button onClick={() => { setActiveTab('SETTINGS'); setIsMenuOpen(false); }} className={`p-4 text-left font-bold flex items-center gap-3 transition-colors ${activeTab === 'SETTINGS' ? 'bg-teal-50 text-teal-700 border-l-4 border-teal-600' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <Settings className="w-5 h-5"/> SETTINGS
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Dashboard Stats */}
