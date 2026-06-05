@@ -1,10 +1,12 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Fingerprint, User, CalendarRange, CreditCard, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import NetworkBackground from './NetworkBackground';
 
 export default function Layout() {
   const location = useLocation();
+
+  const navigate = useNavigate();
 
   const steps = [
     { path: '/form-identitas', label: 'Identitas', icon: User },
@@ -64,7 +66,17 @@ export default function Layout() {
                 const isActive = idx === currentStepIndex;
                 
                 return (
-                  <div key={step.path} className="relative z-10 flex flex-col items-center">
+                  <button 
+                    key={step.path} 
+                    type="button"
+                    onClick={() => {
+                        if (isCompleted || isActive) {
+                           navigate(step.path);
+                        }
+                    }}
+                    disabled={!isCompleted && !isActive}
+                    className="relative z-10 flex flex-col items-center group cursor-pointer disabled:cursor-not-allowed"
+                  >
                     {/* Circle Indicator */}
                     <div className="relative flex items-center justify-center">
                       {isActive && (
@@ -83,7 +95,7 @@ export default function Layout() {
                         }}
                         className={`w-10 h-10 rounded-full border flex items-center justify-center shadow-sm transition-all duration-350 ${
                           isActive ? 'shadow ring-2 ring-teal-500/10' : ''
-                        }`}
+                        } ${isCompleted && !isActive ? 'group-hover:ring-2 group-hover:ring-teal-500/50' : ''}`}
                       >
                         {isCompleted ? (
                           <Check className="w-5 h-5 text-white stroke-[2.5]" />
@@ -99,13 +111,13 @@ export default function Layout() {
                         isActive 
                           ? 'text-teal-700 font-bold' 
                           : isCompleted 
-                            ? 'text-slate-600' 
+                            ? 'text-slate-600 group-hover:text-teal-600' 
                             : 'text-slate-400'
                       }`}>
                         {step.label}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>

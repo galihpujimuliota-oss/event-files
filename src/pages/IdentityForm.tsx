@@ -80,6 +80,7 @@ export default function IdentityForm() {
       });
 
       setAttendee(prev => prev ? { ...prev, photoUrl: compBase64 } : null);
+      store.saveAttendee({ photoUrl: compBase64 });
       setPhotoError('');
     } catch (err: any) {
       console.error(err);
@@ -91,6 +92,7 @@ export default function IdentityForm() {
 
   const handleFieldChange = (field: keyof AttendeeData, value: any) => {
     setAttendee(prev => prev ? { ...prev, [field]: value } : null);
+    store.saveAttendee({ [field]: value });
   };
 
   const handleNpkChange = (val: string) => {
@@ -109,8 +111,10 @@ export default function IdentityForm() {
           studyField: allowed.studyField
         };
       });
+      store.saveAttendee({ npk: cleanedVal, fullName: allowed.fullName, studyField: allowed.studyField });
     } else {
       setAttendee(prev => prev ? { ...prev, npk: cleanedVal } : null);
+      store.saveAttendee({ npk: cleanedVal });
     }
   };
 

@@ -220,7 +220,7 @@ export default function SuccessCard() {
               onClick={() => navigate('/form-identitas')} 
               className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 px-4 py-3 rounded-xl font-medium transition-colors"
             >
-              <Edit3 className="w-4 h-4" /> Edit Data
+              <Edit3 className="w-4 h-4" /> Edit Jawaban
             </button>
           </div>
         </motion.div>

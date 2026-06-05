@@ -54,7 +54,7 @@ export default function AttendanceForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
-              onClick={() => setSelectedType('DARING')}
+              onClick={() => { setSelectedType('DARING'); store.saveAttendee({ attendanceType: 'DARING' }); }}
               className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'DARING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
             >
               <div className="flex items-center gap-3 mb-3">
@@ -69,7 +69,7 @@ export default function AttendanceForm() {
 
             <button
               type="button"
-              onClick={() => setSelectedType('LURING')}
+              onClick={() => { setSelectedType('LURING'); store.saveAttendee({ attendanceType: 'LURING' }); }}
               className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'LURING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
             >
               <div className="flex items-center gap-3 mb-3">

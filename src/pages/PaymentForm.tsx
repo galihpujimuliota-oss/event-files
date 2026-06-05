@@ -13,9 +13,17 @@ export default function PaymentForm() {
   
   // Daring certificate model
   const [certificateModel, setCertificateModel] = useState<'MODEL_1' | 'MODEL_2' | 'MODEL_3' | undefined>(undefined);
+  const handleSetCertificateModel = (model: 'MODEL_1' | 'MODEL_2' | 'MODEL_3') => {
+    setCertificateModel(model);
+    store.saveAttendee({ certificateRetrievalMethod: model });
+  };
   
   // Custom optional sash (selempang) selection
   const [wantsSash, setWantsSash] = useState(false);
+  const handleSetWantsSash = (checked: boolean) => {
+    setWantsSash(checked);
+    store.saveAttendee({ wantsSash: checked });
+  };
 
   useEffect(() => {
     const data = store.getAttendee();
@@ -163,8 +171,25 @@ export default function PaymentForm() {
     }
   };
 
-  const handleUppercase = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = e.target.value.toUpperCase();
+  const handleFileChange = async (field: keyof AttendeeData, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await readProofFile(file);
+      setAttendee(prev => prev ? { ...prev, [field]: dataUrl } : null);
+      store.saveAttendee({ [field]: dataUrl });
+    } catch (err: any) {
+      setPhotoError(err.message);
+    }
+  };
+
+  const handleFieldChange = (field: keyof AttendeeData, e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.toUpperCase();
+    if (field !== 'certificateRetrievalMethod' && field !== 'wantsSash') {
+       e.target.value = val;
+    }
+    setAttendee(prev => prev ? { ...prev, [field]: val } : null);
+    store.saveAttendee({ [field]: val });
   };
 
   return (
@@ -308,23 +333,23 @@ export default function PaymentForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Pengirim/Rekening</label>
-                  <input required name="paymentHotelAccountName" type="text" onChange={handleUppercase} className="input-base uppercase font-medium" placeholder="Nama di Rekening" defaultValue={attendee?.paymentHotelAccountName || ''} />
+                  <input required name="paymentHotelAccountName" type="text" onChange={(e) => handleFieldChange('paymentHotelAccountName', e)} className="input-base uppercase font-medium" placeholder="Nama di Rekening" defaultValue={attendee?.paymentHotelAccountName || ''} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor Rekening</label>
-                  <input required name="paymentHotelAccountNumber" type="text" onChange={handleUppercase} className="input-base font-mono uppercase font-medium" placeholder="1234567890" defaultValue={attendee?.paymentHotelAccountNumber || ''} />
+                  <input required name="paymentHotelAccountNumber" type="text" onChange={(e) => handleFieldChange('paymentHotelAccountNumber', e)} className="input-base font-mono uppercase font-medium" placeholder="1234567890" defaultValue={attendee?.paymentHotelAccountNumber || ''} />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Bank Pengirim</label>
-                <input required name="paymentHotelBank" type="text" onChange={handleUppercase} className="input-base uppercase font-medium" placeholder="Contoh: BANK BCA" defaultValue={attendee?.paymentHotelBank || ''} />
+                <input required name="paymentHotelBank" type="text" onChange={(e) => handleFieldChange('paymentHotelBank', e)} className="input-base uppercase font-medium" placeholder="Contoh: BANK BCA" defaultValue={attendee?.paymentHotelBank || ''} />
               </div>
               <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100/50">
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
                   <Receipt className="w-4 h-4 text-teal-600" /> Upload Bukti Acara Hotel
                 </label>
                 <p className="text-xs text-slate-500 mb-3">Maks 1 MB (PNG/JPG).</p>
-                <input type="file" name="hotelProofFile" accept="image/*" required={!attendee?.paymentHotelProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-teal-700 file:border file:border-teal-200 hover:file:bg-teal-50 transition-all cursor-pointer font-sans" />
+                <input type="file" name="hotelProofFile" accept="image/*" onChange={(e) => handleFileChange('paymentHotelProofUrl', e)} required={!attendee?.paymentHotelProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-teal-700 file:border file:border-teal-200 hover:file:bg-teal-50 transition-all cursor-pointer font-sans" />
                 {attendee?.paymentHotelProofUrl && <p className="text-xs font-semibold text-teal-600 mt-2">✓ Bukti pembayaran hotel terlampir.</p>}
               </div>
             </div>
@@ -339,23 +364,23 @@ export default function PaymentForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Pengirim/Rekening</label>
-                <input required name="paymentLegalisirAccountName" type="text" onChange={handleUppercase} className="input-base uppercase font-medium" placeholder="Nama di Rekening" defaultValue={attendee?.paymentLegalisirAccountName || ''} />
+                <input required name="paymentLegalisirAccountName" type="text" onChange={(e) => handleFieldChange('paymentLegalisirAccountName', e)} className="input-base uppercase font-medium" placeholder="Nama di Rekening" defaultValue={attendee?.paymentLegalisirAccountName || ''} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor Rekening</label>
-                <input required name="paymentLegalisirAccountNumber" type="text" onChange={handleUppercase} className="input-base font-mono uppercase font-medium" placeholder="1234567890" defaultValue={attendee?.paymentLegalisirAccountNumber || ''} />
+                <input required name="paymentLegalisirAccountNumber" type="text" onChange={(e) => handleFieldChange('paymentLegalisirAccountNumber', e)} className="input-base font-mono uppercase font-medium" placeholder="1234567890" defaultValue={attendee?.paymentLegalisirAccountNumber || ''} />
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Bank Pengirim</label>
-              <input required name="paymentLegalisirBank" type="text" onChange={handleUppercase} className="input-base uppercase font-medium" placeholder="Contoh: BANK BCA" defaultValue={attendee?.paymentLegalisirBank || ''} />
+              <input required name="paymentLegalisirBank" type="text" onChange={(e) => handleFieldChange('paymentLegalisirBank', e)} className="input-base uppercase font-medium" placeholder="Contoh: BANK BCA" defaultValue={attendee?.paymentLegalisirBank || ''} />
             </div>
             <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100/50">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
                 <Receipt className="w-4 h-4 text-teal-600" /> Upload Bukti Legalisir
               </label>
               <p className="text-xs text-slate-500 mb-3">Maks 1 MB (PNG/JPG).</p>
-              <input type="file" name="legalisirProofFile" accept="image/*" required={!attendee?.paymentLegalisirProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-teal-700 file:border file:border-teal-200 hover:file:bg-teal-50 transition-all cursor-pointer font-sans" />
+              <input type="file" name="legalisirProofFile" accept="image/*" onChange={(e) => handleFileChange('paymentLegalisirProofUrl', e)} required={!attendee?.paymentLegalisirProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-teal-700 file:border file:border-teal-200 hover:file:bg-teal-50 transition-all cursor-pointer font-sans" />
               {attendee?.paymentLegalisirProofUrl && <p className="text-xs font-semibold text-teal-600 mt-2">✓ Bukti pembayaran legalisir terlampir.</p>}
             </div>
           </div>
@@ -374,7 +399,7 @@ export default function PaymentForm() {
               <input 
                 type="checkbox" 
                 checked={wantsSash} 
-                onChange={(e) => setWantsSash(e.target.checked)} 
+                onChange={(e) => handleSetWantsSash(e.target.checked)} 
                 className="sr-only peer" 
               />
               <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
@@ -404,23 +429,23 @@ export default function PaymentForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-sans">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Pengirim/Rekening Selempang</label>
-                  <input required={wantsSash} name="paymentSashAccountName" type="text" onChange={handleUppercase} className="input-base uppercase font-medium" placeholder="Nama di Rekening" defaultValue={attendee?.paymentSashAccountName || ''} />
+                  <input required={wantsSash} name="paymentSashAccountName" type="text" onChange={(e) => handleFieldChange('paymentSashAccountName', e)} className="input-base uppercase font-medium" placeholder="Nama di Rekening" defaultValue={attendee?.paymentSashAccountName || ''} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor Rekening Selempang</label>
-                  <input required={wantsSash} name="paymentSashAccountNumber" type="text" onChange={handleUppercase} className="input-base font-mono uppercase font-medium" placeholder="1234567890" defaultValue={attendee?.paymentSashAccountNumber || ''} />
+                  <input required={wantsSash} name="paymentSashAccountNumber" type="text" onChange={(e) => handleFieldChange('paymentSashAccountNumber', e)} className="input-base font-mono uppercase font-medium" placeholder="1234567890" defaultValue={attendee?.paymentSashAccountNumber || ''} />
                 </div>
               </div>
               <div className="font-sans">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Bank Pengirim Selempang</label>
-                <input required={wantsSash} name="paymentSashBank" type="text" onChange={handleUppercase} className="input-base uppercase font-medium" placeholder="Contoh: BANK BCA" defaultValue={attendee?.paymentSashBank || ''} />
+                <input required={wantsSash} name="paymentSashBank" type="text" onChange={(e) => handleFieldChange('paymentSashBank', e)} className="input-base uppercase font-medium" placeholder="Contoh: BANK BCA" defaultValue={attendee?.paymentSashBank || ''} />
               </div>
               <div className="bg-amber-50/30 p-4 rounded-xl border border-amber-100/40">
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
                   <Receipt className="w-4 h-4 text-amber-600" /> Upload Bukti Selempang
                 </label>
                 <p className="text-xs text-slate-500 mb-3 font-medium">Maks 1 MB (PNG/JPG).</p>
-                <input type="file" name="sashProofFile" accept="image/*" required={wantsSash && !attendee?.paymentSashProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-amber-750 file:border file:border-amber-200 hover:file:bg-amber-50 transition-all cursor-pointer font-sans" />
+                <input type="file" name="sashProofFile" accept="image/*" onChange={(e) => handleFileChange('paymentSashProofUrl', e)} required={wantsSash && !attendee?.paymentSashProofUrl} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:uppercase file:bg-white file:text-amber-750 file:border file:border-amber-200 hover:file:bg-amber-50 transition-all cursor-pointer font-sans" />
                 {attendee?.paymentSashProofUrl && <p className="text-xs font-semibold text-amber-600 mt-2">✓ Bukti pembayaran selempang terlampir.</p>}
               </div>
             </motion.div>
@@ -437,7 +462,7 @@ export default function PaymentForm() {
               <label className={`block border rounded-xl p-4 cursor-pointer transition-all ${certificateModel === 'MODEL_1' ? 'border-indigo-500 bg-indigo-50/50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300'}`}>
                 <div className="flex items-start gap-4">
                   <div className="mt-0.5">
-                    <input type="radio" name="certificateModel" value="MODEL_1" checked={certificateModel === 'MODEL_1'} onChange={() => setCertificateModel('MODEL_1')} className="w-4 h-4 text-indigo-600" />
+                    <input type="radio" name="certificateModel" value="MODEL_1" checked={certificateModel === 'MODEL_1'} onChange={() => handleSetCertificateModel('MODEL_1')} className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-800 text-sm">Model 1: Mengambil sendiri ke kampus</h4>
@@ -448,7 +473,7 @@ export default function PaymentForm() {
               <label className={`block border rounded-xl p-4 cursor-pointer transition-all ${certificateModel === 'MODEL_2' ? 'border-indigo-500 bg-indigo-50/50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300'}`}>
                 <div className="flex items-start gap-4">
                   <div className="mt-0.5">
-                    <input type="radio" name="certificateModel" value="MODEL_2" checked={certificateModel === 'MODEL_2'} onChange={() => setCertificateModel('MODEL_2')} className="w-4 h-4 text-indigo-600" />
+                    <input type="radio" name="certificateModel" value="MODEL_2" checked={certificateModel === 'MODEL_2'} onChange={() => handleSetCertificateModel('MODEL_2')} className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-800 text-sm">Model 2: Diwakilkan</h4>
@@ -459,7 +484,7 @@ export default function PaymentForm() {
               <label className={`block border rounded-xl p-4 cursor-pointer transition-all ${certificateModel === 'MODEL_3' ? 'border-indigo-500 bg-indigo-50/50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300'}`}>
                 <div className="flex items-start gap-4">
                   <div className="mt-0.5">
-                    <input type="radio" name="certificateModel" value="MODEL_3" checked={certificateModel === 'MODEL_3'} onChange={() => setCertificateModel('MODEL_3')} className="w-4 h-4 text-indigo-600" />
+                    <input type="radio" name="certificateModel" value="MODEL_3" checked={certificateModel === 'MODEL_3'} onChange={() => handleSetCertificateModel('MODEL_3')} className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-slate-800 text-sm">Model 3: Jasa Pengiriman oleh Ikatan Keluarga Alumni (IKA) PPG</h4>
