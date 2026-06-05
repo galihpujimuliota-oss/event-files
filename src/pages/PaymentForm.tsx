@@ -29,6 +29,10 @@ export default function PaymentForm() {
     const data = store.getAttendee();
     if (!data || !data.id) {
       navigate('/login');
+    } else if (!data.fullName || !data.npk || !data.studyField) {
+      navigate('/form-identitas');
+    } else if (!data.attendanceType) {
+      navigate('/form-kehadiran');
     } else {
       setAttendee(data);
       if (data.certificateRetrievalMethod) {

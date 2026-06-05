@@ -14,6 +14,8 @@ export default function AttendanceForm() {
     const data = store.getAttendee();
     if (!data || !data.id) {
       navigate('/login');
+    } else if (!data.fullName || !data.npk || !data.studyField) {
+      navigate('/form-identitas');
     } else {
       setAttendee(data);
       setSelectedType(data.attendanceType || '');
