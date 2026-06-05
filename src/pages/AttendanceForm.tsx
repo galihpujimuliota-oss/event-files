@@ -63,7 +63,7 @@ export default function AttendanceForm() {
                 <div className={`p-2 rounded-lg ${selectedType === 'DARING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   <RadioTower className="w-5 h-5" />
                 </div>
-                <span className="font-bold text-slate-800">DARING</span>
+                <span className="font-bold text-slate-800" translate="no">DARING</span>
               </div>
               <p className="text-sm text-slate-500">Live Streaming YouTube</p>
               <p className="text-xs text-slate-400 mt-2 font-mono">Biaya Surat: Rp 100k</p>
@@ -78,7 +78,7 @@ export default function AttendanceForm() {
                 <div className={`p-2 rounded-lg ${selectedType === 'LURING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   <Users className="w-5 h-5" />
                 </div>
-                <span className="font-bold text-slate-800">LURING</span>
+                <span className="font-bold text-slate-800" translate="no">LURING</span>
               </div>
               <p className="text-sm text-slate-500">Hadir di Ascent Premiere Hotel</p>
               <p className="text-xs text-slate-400 mt-2 font-mono">Biaya Total: Rp 450k</p>
