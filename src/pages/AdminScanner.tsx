@@ -1167,6 +1167,10 @@ export default function AdminScanner() {
           const endDataIndex = startDataIndex + itemsPerPage;
           const paginatedAttendees = filteredAttendees.slice(startDataIndex, endDataIndex);
 
+          const duplicateNpks = new Set(
+            attendeesList.map(a => a.npk).filter((npk, index, arr) => arr.indexOf(npk) !== index)
+          );
+
           return (
             <motion.div key="data" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="bg-white border text-sm border-slate-200 rounded-xl overflow-hidden shadow-sm">
               <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1199,7 +1203,12 @@ export default function AdminScanner() {
                     {paginatedAttendees.map((att) => (
                       <tr key={att.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-5 py-4">
-                          <p className="font-bold text-slate-800">{att.fullName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-slate-800">{att.fullName}</p>
+                            {duplicateNpks.has(att.npk) && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 tracking-wider">GANDA</span>
+                            )}
+                          </div>
                           <p className="text-slate-400 text-xs font-mono tracking-widest">{att.npk}</p>
                         </td>
                         <td className="px-5 py-4">

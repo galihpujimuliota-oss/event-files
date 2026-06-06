@@ -336,6 +336,22 @@ export const store = {
     return result;
   },
 
+  async getAttendeeByNpk(npk: string): Promise<AttendeeData | null> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('attendees').select('*').eq('npk', npk).maybeSingle();
+        if (!error && data) {
+          return deserializeItem(data);
+        }
+      } catch (e) {
+        console.error('Supabase getAttendeeByNpk exception:', e);
+      }
+    }
+    const all = Object.values(getLocalDb());
+    const found = all.find(a => a.npk === npk);
+    return found ? found : null;
+  },
+
   async getAttendeeById(id: string): Promise<AttendeeData | null> {
     let localItem: any = null;
     try {

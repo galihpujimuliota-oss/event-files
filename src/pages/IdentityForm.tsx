@@ -118,6 +118,8 @@ export default function IdentityForm() {
     }
   };
 
+  const [isChecking, setIsChecking] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -147,7 +149,25 @@ export default function IdentityForm() {
       return;
     }
 
-    await store.saveAttendee(data);
+    setIsChecking(true);
+    const existing = await store.getAttendeeByNpk(data.npk);
+    setIsChecking(false);
+
+    if (existing && existing.id !== attendee.id) {
+      const confirmEdit = window.confirm(
+        "PERINGATAN: Nomor NPK / Akun Siaga ini sudah digunakan untuk registrasi!\n\n" +
+        "Apakah Anda ingin MENGUBAH / MELANJUTKAN data Anda yang sudah ada sebelumnya?\n" +
+        "(Klik OK untuk Lanjut, Cancel untuk membatalkan)"
+      );
+      if (!confirmEdit) {
+        return; // Prevent duplicate submission
+      }
+      // Merge new mapped identity data into the existing data record to retain previous answers/proofs
+      await store.saveAttendee({ ...existing, ...data });
+    } else {
+      await store.saveAttendee(data);
+    }
+    
     navigate('/form-kehadiran');
   };
 
@@ -365,9 +385,13 @@ export default function IdentityForm() {
         <div className="pt-6 mt-6 border-t border-slate-100 flex justify-end">
           <button 
             type="submit" 
-            className="group relative px-8 py-3 rounded-xl font-bold bg-teal-600 text-white shadow-[0_8px_20px_-4px_rgba(13,148,136,0.4)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            disabled={isChecking}
+            className="group relative px-8 py-3 rounded-xl font-bold bg-teal-600 text-white shadow-[0_8px_20px_-4px_rgba(13,148,136,0.4)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed overflow-hidden"
           >
-            <span className="relative z-10">Lanjut ke Presensi →</span>
+            <span className="relative z-10 flex items-center gap-2">
+              {isChecking ? 'Memeriksa Data...' : 'Lanjut ke Presensi'}
+              {!isChecking && <span>→</span>}
+            </span>
             <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </button>
         </div>
