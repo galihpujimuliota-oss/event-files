@@ -11,6 +11,7 @@ export default function IdentityForm() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [npkInput, setNpkInput] = useState('');
 
   useEffect(() => {
@@ -117,8 +118,6 @@ export default function IdentityForm() {
       store.saveAttendee({ npk: cleanedVal });
     }
   };
-
-  const [isChecking, setIsChecking] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
