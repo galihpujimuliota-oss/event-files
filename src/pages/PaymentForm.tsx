@@ -67,8 +67,8 @@ export default function PaymentForm() {
           let width = img.width;
           let height = img.height;
 
-          // Limit resolution for proof files (600px is perfect for receipts)
-          const MAX_DIM = 600;
+          // Limit resolution for proof files (1600px is ultra-sharp for bank receipts)
+          const MAX_DIM = 1600;
           if (width > MAX_DIM || height > MAX_DIM) {
             if (width > height) {
               height = Math.round((height * MAX_DIM) / width);
@@ -84,7 +84,7 @@ export default function PaymentForm() {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // 0.6 is super light but fully legible for text/numbers
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 0.9 is ultra-sharp and lets admin read bank transaction numbers clearly
             resolve(dataUrl);
           } else {
             resolve(event.target?.result as string);

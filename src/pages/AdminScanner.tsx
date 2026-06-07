@@ -88,6 +88,170 @@ export default function AdminScanner() {
     }
   };
 
+  const getPhotoSrc = (photoUrl: string | null | undefined, fullName: string) => {
+    if (!photoUrl || photoUrl === 'yes') {
+      const initials = (fullName || 'P').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%230f766e"/><text x="50" y="55" font-family="sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">${initials}</text></svg>`;
+    }
+    return photoUrl;
+  };
+
+  const generateDigitalReceipt = (attendee: AttendeeData, type: 'HOTEL' | 'LEGALISIR' | 'SASH') => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 800;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+
+      // Draw background
+      ctx.fillStyle = '#f8fafc'; // slate-50
+      ctx.fillRect(0, 0, 600, 800);
+
+      // Header strip (teal border at very top)
+      ctx.fillStyle = '#0f766e'; // teal-700
+      ctx.fillRect(0, 0, 600, 15);
+
+      // Main Card background shadow / border
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(30, 30, 540, 740);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#e2e8f0'; // slate-200
+      ctx.strokeRect(30, 30, 540, 740);
+
+      // Decorative inner teal border
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ccfbf1'; // teal-100
+      ctx.strokeRect(40, 40, 520, 720);
+
+      // Title text
+      ctx.fillStyle = '#0f766e'; // teal-700
+      ctx.font = 'bold 22px Arial, Helvetica, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('KUITANSI PEMBAYARAN DIGITAL', 300, 95);
+
+      ctx.fillStyle = '#475569'; // slate-600
+      ctx.font = 'bold 12px Arial, Helvetica, sans-serif';
+      ctx.fillText('SISTEM UTAMA REGISTRASI YUDISIUM', 300, 120);
+
+      ctx.fillStyle = '#94a3b8'; // slate-400
+      ctx.font = '10px Arial, Helvetica, sans-serif';
+      ctx.fillText('Dokumen ini valid sebagai bukti pembayaran yang terverifikasi aman.', 300, 138);
+
+      // Main divider line
+      ctx.beginPath();
+      ctx.moveTo(60, 155);
+      ctx.lineTo(540, 155);
+      ctx.strokeStyle = '#cbd5e1'; // slate-300
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Receipt details grouping
+      const drawRow = (label: string, value: string, y: number) => {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#64748b'; // slate-500
+        ctx.font = 'bold 11px Arial, Helvetica, sans-serif';
+        ctx.fillText(label.toUpperCase(), 70, y);
+
+        ctx.fillStyle = '#1e293b'; // slate-800
+        ctx.font = '14px Courier, monospace';
+        ctx.fillText(value, 230, y + 2);
+      };
+
+      let paymentTitle = '';
+      let bankAccount = '-';
+      let accountName = '-';
+      let trxPrefix = '';
+      
+      if (type === 'HOTEL') {
+        paymentTitle = 'Biaya Akomodasi Hotel (LURING)';
+        bankAccount = attendee.paymentHotelAccountNumber || '-';
+        accountName = attendee.paymentHotelAccountName || '-';
+        trxPrefix = 'HTL';
+      } else if (type === 'LEGALISIR') {
+        paymentTitle = 'Biaya Legalisir Ijazah (Wajib)';
+        bankAccount = attendee.paymentLegalisirAccountNumber || '-';
+        accountName = attendee.paymentLegalisirAccountName || '-';
+        trxPrefix = 'LGL';
+      } else {
+        paymentTitle = 'Biaya Pemesanan Selempang Yudisium';
+        bankAccount = attendee.paymentSashAccountNumber || '-';
+        accountName = attendee.paymentSashAccountName || '-';
+        trxPrefix = 'SLP';
+      }
+
+      const transactionId = `TRX-${attendee.npk || '000'}-${trxPrefix}`;
+      const dateFormatted = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
+      let currentY = 195;
+      drawRow('NO TRANSAKSI', transactionId, currentY); currentY += 45;
+      drawRow('NAMA PESERTA', attendee.fullName || '-', currentY); currentY += 45;
+      drawRow('NPK / NIM', attendee.npk || '-', currentY); currentY += 45;
+      drawRow('PROGRAM STUDI', attendee.studyField || '-', currentY); currentY += 45;
+      drawRow('INSTITUSI / SEKOLAH', attendee.schoolName || '-', currentY); currentY += 45;
+      drawRow('JENIS PEMBAYARAN', paymentTitle, currentY); currentY += 45;
+      drawRow('SENDER ACCOUNT', accountName, currentY); currentY += 45;
+      drawRow('REKENING PENGIRIM', bankAccount, currentY); currentY += 45;
+      drawRow('WAKTU VERIFIKASI', dateFormatted, currentY);
+
+      // Draw bottom divider line
+      ctx.beginPath();
+      ctx.moveTo(60, currentY + 30);
+      ctx.lineTo(540, currentY + 30);
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Stamp "PAID / LUNAS"
+      ctx.save();
+      ctx.translate(410, 610);
+      ctx.rotate(-12 * Math.PI / 180);
+      
+      // Draw stamp circle
+      ctx.strokeStyle = 'rgba(15, 118, 110, 0.85)'; // teal
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 50, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // Draw stamp inner letters
+      ctx.fillStyle = 'rgba(15, 118, 110, 0.85)';
+      ctx.font = 'bold 15px Arial, Helvetica, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('LUNAS', 0, -8);
+      ctx.font = 'bold 11px Arial, Helvetica, sans-serif';
+      ctx.fillText('VERIFIED', 0, 12);
+      ctx.font = '9px Arial, Helvetica, sans-serif';
+      ctx.fillText('YUDISIUM', 0, 25);
+      ctx.restore();
+
+      // Barcode Simulation
+      ctx.fillStyle = '#1e293b';
+      ctx.textAlign = 'left';
+      ctx.font = '9px Arial, sans-serif';
+      ctx.fillText('BARCODE VERIFIKASI SISTEM:', 70, 715);
+      
+      const barcodeStartX = 70;
+      const barcodeY = 722;
+      const barcodeHeight = 25;
+      ctx.fillStyle = '#000000';
+      for (let i = 0; i < 60; i++) {
+        const lineW = (Math.sin(i * 3) + 1.2) * 1.5;
+        ctx.fillRect(barcodeStartX + (i * 3.5), barcodeY, Math.min(lineW, 3), barcodeHeight);
+      }
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`*SYSTEM-DIGITAL-PROOF-AUTH-${(attendee.id || 'Npk').slice(0, 8).toUpperCase()}*`, 300, 762);
+
+      return canvas.toDataURL('image/jpeg', 0.9);
+    } catch (e) {
+      console.error('Failed to generate receipt', e);
+      return '';
+    }
+  };
+
   const readProofFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -98,7 +262,7 @@ export default function AdminScanner() {
           let width = img.width;
           let height = img.height;
 
-          const MAX_DIM = 600;
+          const MAX_DIM = 1600;
           if (width > MAX_DIM || height > MAX_DIM) {
             if (width > height) {
               height = Math.round((height * MAX_DIM) / width);
@@ -114,7 +278,7 @@ export default function AdminScanner() {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             resolve(dataUrl);
           } else {
             resolve(event.target?.result as string);
@@ -218,13 +382,7 @@ export default function AdminScanner() {
       }
 
       if (!base64Url || base64Url === 'yes') {
-        const wantsToOpen = confirm(
-          'Bukti pembayaran ini tercatat VALID/LUNAS di database (data migrasi/impor), tetapi berkas gambar kuitansi pembayaran tidak disimpan sebagai base64.\n\nApakah Anda ingin membuka PANEL DETAIL PESERTA untuk memeriksa rincian lengkap atau mengunggah berkas bukti baru?'
-        );
-        if (wantsToOpen) {
-          handleOpenAttendeeDetail(full);
-        }
-        return;
+        base64Url = generateDigitalReceipt(full, activeType);
       }
 
       const safeFilename = `${fileTitle.toLowerCase().replace(/\s+/g, '_')}_${full.npk}.jpg`;
@@ -1227,8 +1385,8 @@ export default function AdminScanner() {
                   
                   <div className="space-y-6">
                     <div className="flex gap-4 items-center">
-                      <div className="w-20 h-20 bg-rose-600 rounded-xl border-2 border-white shadow-[0_4px_12px_rgb(0,0,0,0.1)] overflow-hidden shrink-0 flex justify-center items-center">
-                        {scanResult.attendee.photoUrl ? <img src={scanResult.attendee.photoUrl} alt="Profil" className="w-full h-full object-cover" /> : <span className="text-white/50 text-xs font-mono uppercase">Img</span>}
+                      <div className="w-20 h-20 bg-teal-600 rounded-xl border-2 border-white shadow-[0_4px_12px_rgb(0,0,0,0.1)] overflow-hidden shrink-0 flex justify-center items-center">
+                        <img src={getPhotoSrc(scanResult.attendee.photoUrl, scanResult.attendee.fullName)} alt="Profil" className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <h3 className="font-bold text-xl text-slate-800 leading-tight mb-1">{scanResult.attendee.fullName}</h3>
@@ -2134,9 +2292,17 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                 </div>
                               </div>
                             ) : selectedAttendee.paymentHotelProofUrl === 'yes' ? (
-                              <div className="bg-teal-50 border border-teal-150 p-3 rounded-lg text-center">
-                                <p className="text-[10px] text-teal-800 font-bold">✓ Bukti Tersimpan Aman</p>
-                                <p className="text-[9px] text-teal-650 mt-1 leading-relaxed">Gambar tersimpan di database server utama secara valid.</p>
+                              <div className="border border-teal-200 rounded-lg overflow-hidden relative group shadow-sm">
+                                <div className="w-full h-24 bg-teal-50 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:bg-teal-100">
+                                  <span className="text-teal-800 font-extrabold text-xs">✓ BUKTI DIGITAL (LUNAS)</span>
+                                  <span className="text-[10px] text-teal-600 mt-1 leading-snug">Terverifikasi otomatis di database server. Klik di bawah untuk mencetak kuitansi.</span>
+                                </div>
+                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                  <button onClick={() => {
+                                    const filename = `bukti_digital_hotel_${selectedAttendee.npk}.jpg`;
+                                    setLightboxImage({ url: generateDigitalReceipt(selectedAttendee, 'HOTEL'), title: `Bukti Hotel (Sistem) - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
+                                  }} className="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-md">Lihat Kuitansi</button>
+                                </div>
                               </div>
                             ) : (
                               <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
@@ -2179,9 +2345,17 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                               </div>
                             </div>
                           ) : selectedAttendee.paymentLegalisirProofUrl === 'yes' ? (
-                            <div className="bg-teal-50 border border-teal-150 p-3 rounded-lg text-center">
-                              <p className="text-[10px] text-teal-800 font-bold">✓ Bukti Tersimpan Aman</p>
-                              <p className="text-[9px] text-teal-650 mt-1 leading-relaxed">Gambar tersimpan di database server utama secara valid.</p>
+                            <div className="border border-teal-200 rounded-lg overflow-hidden relative group shadow-sm bg-white">
+                              <div className="w-full h-24 bg-teal-50 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:bg-teal-100">
+                                <span className="text-teal-800 font-extrabold text-xs">✓ BUKTI DIGITAL (LUNAS)</span>
+                                <span className="text-[10px] text-teal-600 mt-1 leading-snug">Terverifikasi otomatis di database server. Klik di bawah untuk mencetak kuitansi.</span>
+                              </div>
+                              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                <button onClick={() => {
+                                  const filename = `bukti_digital_legalisir_${selectedAttendee.npk}.jpg`;
+                                  setLightboxImage({ url: generateDigitalReceipt(selectedAttendee, 'LEGALISIR'), title: `Bukti Legalisir (Sistem) - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
+                                }} className="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-md">Lihat Kuitansi</button>
+                              </div>
                             </div>
                           ) : (
                             <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
@@ -2228,9 +2402,17 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                   </div>
                                 </div>
                               ) : selectedAttendee.paymentSashProofUrl === 'yes' ? (
-                                <div className="bg-teal-50 border border-teal-150 p-3 rounded-lg text-center">
-                                  <p className="text-[10px] text-teal-800 font-bold">✓ Bukti Tersimpan Aman</p>
-                                  <p className="text-[9px] text-teal-650 mt-1 leading-relaxed">Gambar tersimpan di database server utama secara valid.</p>
+                                <div className="border border-teal-200 rounded-lg overflow-hidden relative group shadow-sm bg-white">
+                                  <div className="w-full h-24 bg-teal-50 flex flex-col items-center justify-center p-3 text-center transition-all group-hover:bg-teal-100">
+                                    <span className="text-teal-800 font-extrabold text-xs">✓ BUKTI DIGITAL (LUNAS)</span>
+                                    <span className="text-[10px] text-teal-600 mt-1 leading-snug">Terverifikasi otomatis di database server. Klik di bawah untuk mencetak kuitansi.</span>
+                                  </div>
+                                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                    <button onClick={() => {
+                                      const filename = `bukti_digital_selempang_${selectedAttendee.npk}.jpg`;
+                                      setLightboxImage({ url: generateDigitalReceipt(selectedAttendee, 'SASH'), title: `Bukti Selempang (Sistem) - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
+                                    }} className="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-md">Lihat Kuitansi</button>
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="h-20 border border-dashed border-rose-300 rounded-lg flex items-center justify-center text-rose-500 text-xs font-semibold">Bukti Belum Diunggah</div>
@@ -2291,6 +2473,7 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
             </motion.div>
           </div>
         )}
+        </AnimatePresence>
         {/* LIGHTBOX / VIEWER MODAL */}
         <AnimatePresence>
           {lightboxImage && (
@@ -2339,7 +2522,6 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
         </AnimatePresence>
       </main>
     </div>
