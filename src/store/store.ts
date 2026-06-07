@@ -228,6 +228,13 @@ export const store = {
       };
     }
     const updated = { ...current, ...data };
+    // Protect base64 structures from polyfill overwriting
+    const imageFields = ['photoUrl', 'paymentHotelProofUrl', 'paymentLegalisirProofUrl', 'paymentSashProofUrl'];
+    for (const field of imageFields) {
+      if (data[field] === 'yes' && current && current[field] && current[field] !== 'yes') {
+        updated[field] = current[field];
+      }
+    }
     memoryAttendee = updated as AttendeeData;
     try {
       localStorage.setItem('yudisium_attendee', JSON.stringify(updated));

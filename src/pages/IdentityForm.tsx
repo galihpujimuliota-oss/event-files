@@ -13,6 +13,12 @@ export default function IdentityForm() {
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [npkInput, setNpkInput] = useState('');
+  const [validationError, setValidationError] = useState('');
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    visible: boolean;
+    existing: AttendeeData | null;
+    newData: Partial<AttendeeData> | null;
+  }>({ visible: false, existing: null, newData: null });
 
   useEffect(() => {
     const data = store.getAttendee();
@@ -119,8 +125,23 @@ export default function IdentityForm() {
     }
   };
 
+  const handleConfirmEditDuplicate = async () => {
+    if (duplicateWarning.existing && duplicateWarning.newData) {
+      const merged = { ...duplicateWarning.existing, ...duplicateWarning.newData };
+      await store.saveAttendee(merged);
+      setAttendee(merged as AttendeeData);
+      setDuplicateWarning({ visible: false, existing: null, newData: null });
+      navigate('/form-kehadiran');
+    }
+  };
+
+  const handleCancelDuplicate = () => {
+    setDuplicateWarning({ visible: false, existing: null, newData: null });
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setValidationError('');
     
     const data: Partial<AttendeeData> = {
       email: (attendee.email || '').trim(),
@@ -136,15 +157,15 @@ export default function IdentityForm() {
     };
 
     if (!data.npk) {
-      alert('Mohon isi Nomor NPK / Akun Siaga Anda.');
+      setValidationError('Mohon isi Nomor NPK / Akun Siaga Anda.');
       return;
     }
     if (!data.fullName) {
-      alert('Mohon isi Nama Lengkap Anda.');
+      setValidationError('Mohon isi Nama Lengkap Anda.');
       return;
     }
     if (!data.studyField) {
-      alert('Mohon pilih Bidang Studi Sertifikasi Anda.');
+      setValidationError('Mohon pilih Bidang Studi Sertifikasi Anda.');
       return;
     }
 
@@ -153,32 +174,92 @@ export default function IdentityForm() {
     setIsChecking(false);
 
     if (existing && existing.id !== attendee.id) {
-      const confirmEdit = window.confirm(
-        "PERINGATAN: Nomor NPK / Akun Siaga ini sudah digunakan untuk registrasi!\n\n" +
-        "Apakah Anda ingin MENGUBAH / MELANJUTKAN data Anda yang sudah ada sebelumnya?\n" +
-        "(Klik OK untuk Lanjut, Cancel untuk membatalkan)"
-      );
-      if (!confirmEdit) {
-        return; // Prevent duplicate submission
-      }
-      // Merge new mapped identity data into the existing data record to retain previous answers/proofs
-      await store.saveAttendee({ ...existing, ...data });
+      // Show gorgeous in-app modal instead of browser blocking confirm dialog to prevent crashes and provide edit options
+      setDuplicateWarning({
+        visible: true,
+        existing,
+        newData: data
+      });
     } else {
       await store.saveAttendee(data);
+      navigate('/form-kehadiran');
     }
-    
-    navigate('/form-kehadiran');
   };
 
   return (
     <div className="p-6 md:p-8 animate-in fade-in duration-300">
-      <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-6">
         <span className="text-teal-600 font-mono text-sm border border-teal-200 bg-teal-50 px-2 py-0.5 rounded-md">STEP_01</span>
         <div>
           <h2 className="text-xl font-bold text-slate-800 tracking-tight">Identitas Peserta</h2>
           <p className="text-slate-400 text-[13px] leading-snug">Mohon lengkapi profil Anda dengan data yang valid.</p>
         </div>
       </div>
+
+      {/* Warning Callout regarding Double Entries */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex gap-3 text-slate-800 animate-in slide-in-from-top-4 duration-300">
+        <div className="shrink-0 text-amber-600">
+          <svg className="w-5 h-5 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <div>
+          <h4 className="font-bold text-amber-900 text-xs sm:text-sm uppercase tracking-wider mb-1">Peringatan Penting: Hindari Mengisi Double</h4>
+          <p className="text-xs sm:text-[13px] leading-relaxed text-amber-800">
+            Setiap peserta hanya diperkenankan memiliki <strong>satu data registrasi</strong>. Jika Anda sudah pernah mendaftar dan ingin melakukan penyesuaian jawaban atau mengunggah bukti baru, Anda cukup mengisi NPK Anda. Sistem akan otomatis mendeteksi dan menawarkan opsi <strong>"Ubah/Edit Jawaban"</strong> untuk melanjutkan data lama Anda agar tidak terjadi penumpukan data ganda.
+          </p>
+        </div>
+      </div>
+
+      {/* Validation Error Banner */}
+      {validationError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 mb-6 text-sm flex gap-2 items-center animate-shake">
+          <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+          <span className="font-semibold">{validationError}</span>
+        </div>
+      )}
+
+      {/* Duplicate Entry React Modal */}
+      {duplicateWarning.visible && (
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-amber-50 border border-amber-250 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">Nomor NPK/Akun Sudah Terdaftar!</h3>
+              <p className="text-slate-500 text-xs sm:text-sm leading-relaxed mb-4">
+                Nomor NPK / Akun Siaga <strong className="font-mono text-slate-850 bg-slate-100 px-1 py-0.5 rounded">{npkInput}</strong> atas nama <strong className="text-teal-700 capitalize">{(duplicateWarning.existing?.fullName || '').toLowerCase()}</strong> sudah mendaftar sebelumnya.
+              </p>
+              
+              <div className="bg-amber-50/50 rounded-xl p-3.5 mb-6 text-left border border-amber-100/40">
+                <p className="text-[11px] sm:text-xs text-amber-800 leading-normal font-medium">
+                  ⚠️ <strong>Pilihan Aman (Agar Tidak Double Data):</strong> Anda disarankan memilih tombol edit jawaban di bawah untuk memutakhirkan data pendaftaran Anda yang lama, menjaga tertib administratif panitia.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleConfirmEditDuplicate}
+                  className="w-full py-3 px-4 rounded-xl font-bold bg-teal-600 text-white shadow-[0_4px_12px_rgba(13,148,136,0.3)] hover:bg-teal-700 transition-all cursor-pointer active:scale-95"
+                >
+                  Edit Jawaban Registrasi Saya
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelDuplicate}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all cursor-pointer"
+                >
+                  Batal / Ganti Nomor NPK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

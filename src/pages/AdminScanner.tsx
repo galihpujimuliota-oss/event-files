@@ -24,7 +24,7 @@ export default function AdminScanner() {
 
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'UNREGISTERED' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH'>('HOTEL');
+  const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH' | 'DOUBLE'>('HOTEL');
   const [rekapSearch, setRekapSearch] = useState('');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
   const [scanInput, setScanInput] = useState('');
@@ -107,7 +107,7 @@ export default function AdminScanner() {
     }
   };
 
-  const handleViewAndDownloadProof = async (id: string, fileType: 'HOTEL' | 'LEGALISIR' | 'SASH') => {
+  const handleViewAndDownloadProof = async (id: string, fileType: 'HOTEL' | 'LEGALISIR' | 'SASH' | 'DOUBLE') => {
     setIsLoadingFile(true);
     try {
       const full = await store.getAttendeeById(id);
@@ -118,13 +118,31 @@ export default function AdminScanner() {
       
       let base64Url = '';
       let fileTitle = '';
-      if (fileType === 'HOTEL') {
+      let activeType: any = fileType;
+
+      if (activeType === 'DOUBLE') {
+        if (full.paymentLegalisirProofUrl && full.paymentLegalisirProofUrl !== 'yes') {
+          activeType = 'LEGALISIR';
+        } else if (full.paymentHotelProofUrl && full.paymentHotelProofUrl !== 'yes') {
+          activeType = 'HOTEL';
+        } else if (full.paymentSashProofUrl && full.paymentSashProofUrl !== 'yes') {
+          activeType = 'SASH';
+        } else if (full.paymentLegalisirProofUrl) {
+          activeType = 'LEGALISIR';
+        } else if (full.paymentHotelProofUrl) {
+          activeType = 'HOTEL';
+        } else {
+          activeType = 'SASH';
+        }
+      }
+      
+      if (activeType === 'HOTEL') {
         base64Url = full.paymentHotelProofUrl || '';
         fileTitle = 'Bukti Pembayaran Hotel';
-      } else if (fileType === 'LEGALISIR') {
+      } else if (activeType === 'LEGALISIR') {
         base64Url = full.paymentLegalisirProofUrl || '';
         fileTitle = 'Bukti Pembayaran Legalisir';
-      } else if (fileType === 'SASH') {
+      } else if (activeType === 'SASH') {
         base64Url = full.paymentSashProofUrl || '';
         fileTitle = 'Bukti Pembayaran Selempang';
       }
@@ -538,15 +556,24 @@ export default function AdminScanner() {
           const hotelProofCount = attendeesList.filter(a => !!a.paymentHotelProofUrl).length;
           const legalisirProofCount = attendeesList.filter(a => !!a.paymentLegalisirProofUrl).length;
 
+          const npkOccurrences: Record<string, number> = {};
+          attendeesList.forEach(a => {
+            if (a.npk) {
+              npkOccurrences[a.npk] = (npkOccurrences[a.npk] || 0) + 1;
+            }
+          });
+
           const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING');
           const listLegalisir = attendeesList;
           const listSelempang = attendeesList.filter(a => a.wantsSash === true);
+          const listDouble = attendeesList.filter(a => a.npk && npkOccurrences[a.npk] > 1);
 
           const getFilteredRekapList = () => {
             let baseList = [];
             if (rekapTab === 'HOTEL') baseList = listHotel;
             else if (rekapTab === 'LEGALISIR') baseList = listLegalisir;
             else if (rekapTab === 'SASH') baseList = listSelempang;
+            else if (rekapTab === 'DOUBLE') baseList = listDouble;
 
             if (!rekapSearch.trim()) return baseList;
             const searchLower = rekapSearch.toLowerCase();
@@ -566,7 +593,7 @@ export default function AdminScanner() {
           const endRekapIndex = startRekapIndex + itemsPerPage;
           const paginatedRekap = filteredRekap.slice(startRekapIndex, endRekapIndex);
 
-          const handleExportCategoryCSV = (category: 'HOTEL' | 'LEGALISIR' | 'SASH') => {
+          const handleExportCategoryCSV = (category: 'HOTEL' | 'LEGALISIR' | 'SASH' | 'DOUBLE') => {
             let targetList = [];
             let catName = '';
             let headers = ['No', 'Nama Lengkap', 'NPK / Akun Siaga', 'No WhatsApp', 'Bank Rekening Pengirim', 'Atas Nama Rekening Pengirim', 'No Rekening Pengirim', 'URL Bukti Pembayaran'];
@@ -580,6 +607,9 @@ export default function AdminScanner() {
             } else if (category === 'SASH') {
               targetList = listSelempang;
               catName = 'Pembayaran_Selempang';
+            } else if (category === 'DOUBLE') {
+              targetList = listDouble;
+              catName = 'Peserta_Double_Mengisi';
             }
 
             const escapeCsvField = (val: any) => {
@@ -604,7 +634,7 @@ export default function AdminScanner() {
                   acctName = att.paymentHotelAccountName || '';
                   acctNum = att.paymentHotelAccountNumber || '';
                   proofUrl = att.paymentHotelProofUrl || '';
-                } else if (category === 'LEGALISIR') {
+                } else if (category === 'LEGALISIR' || category === 'DOUBLE') {
                   bank = att.paymentLegalisirBank || '';
                   acctName = att.paymentLegalisirAccountName || '';
                   acctNum = att.paymentLegalisirAccountNumber || '';
@@ -857,6 +887,15 @@ export default function AdminScanner() {
                       {listSelempang.length}
                     </span>
                   </button>
+                  <button
+                    onClick={() => { setRekapTab('DOUBLE'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'DOUBLE' ? 'bg-white text-rose-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    👥 DATA GANDA (DUPLIKAT)
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'DOUBLE' ? 'bg-rose-50 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listDouble.length}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Search Bar and Export buttons for the active category */}
@@ -884,6 +923,8 @@ export default function AdminScanner() {
                          detailsStr = att.paymentLegalisirAccountName ? `${att.paymentLegalisirBank} an. ${att.paymentLegalisirAccountName} (${att.paymentLegalisirAccountNumber})` : '';
                        } else if (rekapTab === 'SASH') {
                          detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
+                       } else if (rekapTab === 'DOUBLE') {
+                         detailsStr = `Terdeteksi ${npkOccurrences[att.npk]}x Entri`;
                        }
                        return [
                          i + 1,
@@ -933,16 +974,26 @@ export default function AdminScanner() {
                           } else if (rekapTab === 'SASH') {
                             proofUrl = att.paymentSashProofUrl || '';
                             detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
+                          } else if (rekapTab === 'DOUBLE') {
+                            proofUrl = att.paymentLegalisirProofUrl || att.paymentHotelProofUrl || att.paymentSashProofUrl || '';
+                            detailsStr = `Terdeteksi Ganda (${npkOccurrences[att.npk]}x)`;
                           }
 
                           return (
-                            <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
+                            <tr key={att.id} className={`hover:bg-slate-50/80 transition-colors ${npkOccurrences[att.npk] > 1 ? 'bg-rose-50/20' : ''}`}>
                               <td className="px-4 py-3 text-slate-400 font-mono text-center">{startRekapIndex + index + 1}</td>
-                              <td className="px-4 py-3">
-                                <div className="font-bold text-slate-800">{att.fullName}</div>
+                              <td className="px-4 py-3 font-medium">
+                                <div className="font-bold text-slate-850 flex flex-wrap items-center gap-1.5">
+                                  {att.fullName}
+                                  {npkOccurrences[att.npk] > 1 && (
+                                    <span className="shrink-0 bg-rose-50 border border-rose-220 text-rose-700 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold tracking-wider uppercase">
+                                      ⚠️ GANDA ({npkOccurrences[att.npk]}x)
+                                    </span>
+                                  )}
+                                </div>
                                 {detailsStr && (
                                   <div className="text-[10px] text-slate-500 mt-1 font-medium bg-slate-50 border border-slate-100 rounded inline-block px-1.5 py-0.5">
-                                    Pengirim: {detailsStr}
+                                    Pengirim/Catatan: {detailsStr}
                                   </div>
                                 )}
                               </td>
@@ -1997,7 +2048,7 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                               <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">Atas Nama</span>{selectedAttendee.paymentHotelAccountName || '-'}</p>
                             </div>
                             
-                            {selectedAttendee.paymentHotelProofUrl ? (
+                            {selectedAttendee.paymentHotelProofUrl && selectedAttendee.paymentHotelProofUrl !== 'yes' ? (
                               <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
                                 <img src={selectedAttendee.paymentHotelProofUrl} alt="Bukti Hotel" className="w-full h-32 object-contain bg-slate-100" />
                                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
@@ -2006,6 +2057,11 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                     setLightboxImage({ url: selectedAttendee.paymentHotelProofUrl as string, title: `Bukti Pembayaran Hotel - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
                                   }} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
                                 </div>
+                              </div>
+                            ) : selectedAttendee.paymentHotelProofUrl === 'yes' ? (
+                              <div className="bg-teal-50 border border-teal-150 p-3 rounded-lg text-center">
+                                <p className="text-[10px] text-teal-800 font-bold">✓ Bukti Tersimpan Aman</p>
+                                <p className="text-[9px] text-teal-650 mt-1 leading-relaxed">Gambar tersimpan di database server utama secara valid.</p>
                               </div>
                             ) : (
                               <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
@@ -2021,7 +2077,7 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                             <p><span className="text-slate-400 font-semibold block text-[10px] uppercase">Atas Nama</span>{selectedAttendee.paymentLegalisirAccountName || '-'}</p>
                           </div>
                           
-                          {selectedAttendee.paymentLegalisirProofUrl ? (
+                          {selectedAttendee.paymentLegalisirProofUrl && selectedAttendee.paymentLegalisirProofUrl !== 'yes' ? (
                             <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
                               <img src={selectedAttendee.paymentLegalisirProofUrl} alt="Bukti Legalisir" className="w-full h-32 object-contain bg-slate-100" />
                               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
@@ -2030,6 +2086,11 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                    setLightboxImage({ url: selectedAttendee.paymentLegalisirProofUrl as string, title: `Bukti Pembayaran Legalisir - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
                                  }} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
                               </div>
+                            </div>
+                          ) : selectedAttendee.paymentLegalisirProofUrl === 'yes' ? (
+                            <div className="bg-teal-50 border border-teal-150 p-3 rounded-lg text-center">
+                              <p className="text-[10px] text-teal-800 font-bold">✓ Bukti Tersimpan Aman</p>
+                              <p className="text-[9px] text-teal-650 mt-1 leading-relaxed">Gambar tersimpan di database server utama secara valid.</p>
                             </div>
                           ) : (
                             <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
@@ -2049,7 +2110,7 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                 <p><span className="text-slate-400 font-bold block text-[9px] uppercase tracking-wider mb-0.5">Atas Nama</span>{selectedAttendee.paymentSashAccountName || '-'}</p>
                               </div>
                               
-                              {selectedAttendee.paymentSashProofUrl ? (
+                              {selectedAttendee.paymentSashProofUrl && selectedAttendee.paymentSashProofUrl !== 'yes' ? (
                                 <div className="border border-slate-200 rounded-lg overflow-hidden relative group">
                                   <img src={selectedAttendee.paymentSashProofUrl} alt="Bukti Selempang" className="w-full h-32 object-contain bg-slate-100" />
                                   <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
@@ -2058,6 +2119,11 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                                       setLightboxImage({ url: selectedAttendee.paymentSashProofUrl as string, title: `Bukti Pembayaran Selempang - ${selectedAttendee.fullName} (${selectedAttendee.npk})`, filename });
                                     }} className="bg-white hover:bg-slate-50 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Zoom/Buka Jelas</button>
                                   </div>
+                                </div>
+                              ) : selectedAttendee.paymentSashProofUrl === 'yes' ? (
+                                <div className="bg-teal-50 border border-teal-150 p-3 rounded-lg text-center">
+                                  <p className="text-[10px] text-teal-800 font-bold">✓ Bukti Tersimpan Aman</p>
+                                  <p className="text-[9px] text-teal-650 mt-1 leading-relaxed">Gambar tersimpan di database server utama secara valid.</p>
                                 </div>
                               ) : (
                                 <div className="h-20 border border-dashed border-rose-300 rounded-lg flex items-center justify-center text-rose-500 text-xs font-semibold">Bukti Belum Diunggah</div>

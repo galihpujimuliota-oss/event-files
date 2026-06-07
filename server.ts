@@ -62,7 +62,19 @@ app.post('/api/attendees', (req, res) => {
   if (!data?.id) {
     return res.status(400).json({ error: 'Missing ID' });
   }
-  memoryDb[data.id] = { ...memoryDb[data.id], ...data };
+
+  const existing = memoryDb[data.id];
+  const merged = { ...existing, ...data };
+
+  // Protective Merge: Do NOT let 'yes' polyfill overwrite real, existing base64 image data strings
+  const imageFields = ['photoUrl', 'paymentHotelProofUrl', 'paymentLegalisirProofUrl', 'paymentSashProofUrl'];
+  for (const field of imageFields) {
+    if (data[field] === 'yes' && existing && existing[field] && existing[field] !== 'yes') {
+      merged[field] = existing[field];
+    }
+  }
+
+  memoryDb[data.id] = merged;
   saveDb();
   res.json(memoryDb[data.id]);
 });
