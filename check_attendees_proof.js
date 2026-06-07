@@ -34,6 +34,17 @@ async function check() {
     
     console.log(`Hotel Proofs: yes=${withYesHotel.length}, base64=${withBase64Hotel.length}, null=${withNullHotel.length}`);
 
+    const targetNames = ['LATIFATUN NAIMMAH', 'LINA KURNIYAWATI', 'SITI MARYATI', 'AFIF NUR LAILI', 'ACHMAD ISMAIL'];
+    const matched = allRows.filter(r => targetNames.some(name => r.fullName && r.fullName.includes(name)));
+    console.log('--- Matches from Screenshot ---');
+    matched.forEach(m => {
+      console.log(`Name: ${m.fullName}`);
+      console.log(`  photoUrl: ${m.photoUrl ? (m.photoUrl.startsWith('data:') ? 'base64 (' + m.photoUrl.length + ' chars)' : m.photoUrl) : 'null'}`);
+      console.log(`  paymentLegalisirProofUrl: ${m.paymentLegalisirProofUrl ? (m.paymentLegalisirProofUrl.startsWith('data:') ? 'base64 (' + m.paymentLegalisirProofUrl.length + ' chars)' : m.paymentLegalisirProofUrl) : 'null'}`);
+      console.log(`  paymentHotelProofUrl: ${m.paymentHotelProofUrl ? (m.paymentHotelProofUrl.startsWith('data:') ? 'base64 (' + m.paymentHotelProofUrl.length + ' chars)' : m.paymentHotelProofUrl) : 'null'}`);
+    });
+    console.log('-------------------------------');
+
     if (withBase64Legalisir.length > 0) {
       console.log('Sample base64 Legalisir attendee:', withBase64Legalisir[0].fullName);
     }

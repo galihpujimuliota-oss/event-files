@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown, RefreshCw } from 'lucide-react';
+import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown, RefreshCw, Upload } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -88,6 +88,76 @@ export default function AdminScanner() {
     }
   };
 
+  const readProofFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          const MAX_DIM = 600;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            resolve(dataUrl);
+          } else {
+            resolve(event.target?.result as string);
+          }
+        };
+        img.onerror = () => {
+          resolve(event.target?.result as string);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleAdminUploadProof = async (fieldName: 'paymentHotelProofUrl' | 'paymentLegalisirProofUrl' | 'paymentSashProofUrl', file: File) => {
+    if (!selectedAttendee) return;
+    if (file.size > 1024 * 1024) {
+      alert('Ukuran file bukti pembayaran maksimal adalah 1MB.');
+      return;
+    }
+    
+    setIsLoadingFile(true);
+    try {
+      const dataUrl = await readProofFile(file);
+      
+      const updated = await store.updateAttendeeAdmin(selectedAttendee.id, { [fieldName]: dataUrl });
+      
+      if (updated) {
+        setSelectedAttendee(updated);
+        setAttendeesList(prev => prev.map(a => a.id === selectedAttendee.id ? updated : a));
+        alert('Berhasil mengunggah dan menyimpan file bukti pembayaran yang baru!');
+      } else {
+        alert('Gagal menyinkronkan data pembaruan ke server.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Gagal memproses file gambar: ' + e.message);
+    } finally {
+      setIsLoadingFile(false);
+    }
+  };
+
   const handleOpenAttendeeDetail = async (att: AttendeeData) => {
     setIsLoadingDetail(true);
     try {
@@ -148,7 +218,12 @@ export default function AdminScanner() {
       }
 
       if (!base64Url || base64Url === 'yes') {
-        alert('Foto bukti pembayaran belum diunggah atau kosong.');
+        const wantsToOpen = confirm(
+          'Bukti pembayaran ini tercatat VALID/LUNAS di database (data migrasi/impor), tetapi berkas gambar kuitansi pembayaran tidak disimpan sebagai base64.\n\nApakah Anda ingin membuka PANEL DETAIL PESERTA untuk memeriksa rincian lengkap atau mengunggah berkas bukti baru?'
+        );
+        if (wantsToOpen) {
+          handleOpenAttendeeDetail(full);
+        }
         return;
       }
 
@@ -2066,6 +2141,22 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                             ) : (
                               <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
                             )}
+
+                            <div className="mt-3 flex items-center justify-center">
+                              <label className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-slate-200 transition-colors cursor-pointer shadow-sm">
+                                <Upload className="w-3 h-3 text-slate-500 animate-pulse" />
+                                <span>UNGGAH / GANTI GAMBAR BUKTI</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleAdminUploadProof('paymentHotelProofUrl', file);
+                                  }}
+                                />
+                              </label>
+                            </div>
                           </div>
                         )}
 
@@ -2095,6 +2186,22 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                           ) : (
                             <div className="h-20 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold">Bukti Belum Diunggah</div>
                           )}
+
+                          <div className="mt-3 flex items-center justify-center">
+                            <label className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-slate-200 transition-colors cursor-pointer shadow-sm">
+                              <Upload className="w-3 h-3 text-slate-500 animate-pulse" />
+                              <span>UNGGAH / GANTI GAMBAR BUKTI</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleAdminUploadProof('paymentLegalisirProofUrl', file);
+                                }}
+                              />
+                            </label>
+                          </div>
                         </div>
 
                         {/* 3. Selempang / Sash Audit Box */}
@@ -2128,6 +2235,22 @@ CREATE POLICY "Allow public delete" ON attendees FOR DELETE USING (true);`}
                               ) : (
                                 <div className="h-20 border border-dashed border-rose-300 rounded-lg flex items-center justify-center text-rose-500 text-xs font-semibold">Bukti Belum Diunggah</div>
                               )}
+
+                              <div className="mt-3 flex items-center justify-center">
+                                <label className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-slate-200 transition-colors cursor-pointer shadow-sm">
+                                  <Upload className="w-3 h-3 text-slate-500 animate-pulse" />
+                                  <span>UNGGAH / GANTI GAMBAR BUKTI</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleAdminUploadProof('paymentSashProofUrl', file);
+                                    }}
+                                  />
+                                </label>
+                              </div>
                             </div>
                           ) : (
                             <div className="py-4 text-center text-slate-400 text-xs font-medium italic border border-dashed border-slate-200 rounded-lg">Peserta tidak memesan selempang</div>
