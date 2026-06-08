@@ -301,7 +301,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.4 }}
-          className="flex justify-center mt-10 pb-6"
+          className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-10 pb-6"
         >
           <button 
             onClick={() => navigate('/login')}
@@ -311,6 +311,13 @@ export default function LandingPage() {
               Mulai Registrasi <span className="transition-transform group-hover:translate-x-1">→</span>
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+          
+          <button 
+            onClick={() => navigate('/cek-data')}
+            className="px-8 py-4 bg-white text-teal-700 border-2 border-teal-600 rounded-xl font-semibold transition-all hover:bg-teal-50 active:scale-[0.98] w-full sm:w-auto min-w-[240px] flex items-center justify-center gap-2"
+          >
+            Cek Data Peserta
           </button>
         </motion.div>
       </div>

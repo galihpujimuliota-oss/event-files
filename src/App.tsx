@@ -7,6 +7,7 @@ import PaymentForm from './pages/PaymentForm';
 import SuccessCard from './pages/SuccessCard';
 import AdminScanner from './pages/AdminScanner';
 import AdminLogin from './pages/AdminLogin';
+import CheckStatus from './pages/CheckStatus';
 import Layout from './components/Layout';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<LandingPage />} />
+        <Route path="cek-data" element={<CheckStatus />} />
         <Route path="login" element={<LoginPage />} />
         
         {/* Registration Flow */}

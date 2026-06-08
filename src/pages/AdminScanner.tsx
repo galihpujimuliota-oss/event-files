@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown, RefreshCw, Upload } from 'lucide-react';
+import { ScanFace, CheckCircle2, UserX, Users, Monitor, Building, Settings, BellRing, Table2, Trash2, Edit, Mail, Search, Download, QrCode, Printer, LogOut, CheckCircle, LayoutDashboard, Cpu, Database, Activity, BarChart3, Info, Sparkles, Loader2, X, ChevronDown, RefreshCw, Upload, MapPin } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -773,11 +773,29 @@ export default function AdminScanner() {
 
           // 2. Province breakdown
           const provinceCounts: Record<string, number> = {};
+          const luringProvinceCounts: Record<string, number> = {};
+          const luringCityCounts: Record<string, number> = {};
+
           attendeesList.forEach(a => {
             const prov = a.province || 'Lainnya';
             provinceCounts[prov] = (provinceCounts[prov] || 0) + 1;
+            
+            if (a.attendanceType === 'LURING') {
+              luringProvinceCounts[prov] = (luringProvinceCounts[prov] || 0) + 1;
+              const city = a.city || 'Lainnya';
+              luringCityCounts[city] = (luringCityCounts[city] || 0) + 1;
+            }
           });
+          
           const sortedProvinces = Object.entries(provinceCounts)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 5);
+            
+          const sortedLuringProvinces = Object.entries(luringProvinceCounts)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 5);
+            
+          const sortedLuringCities = Object.entries(luringCityCounts)
             .sort((a,b) => b[1] - a[1])
             .slice(0, 5);
 
@@ -1062,6 +1080,66 @@ export default function AdminScanner() {
 
                 {/* 4. Live Server Monitor Panel (Scalability Indicator) removed as it was simulated UI */}
                 
+                {/* Infografis Sebaran Peserta LURING */}
+                <div className="md:col-span-2 bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-5 shadow-sm space-y-4">
+                  <h4 className="font-bold text-indigo-900 text-sm flex items-center gap-2 pb-2 border-b border-indigo-100/50">
+                    <MapPin className="w-5 h-5 text-indigo-600" /> Infografis Geografi Peserta LURING
+                  </h4>
+                  <p className="text-xs text-indigo-600/80 mb-4">Sebaran spesifik domisili (Provinsi & Kabupaten/Kota) bagi peserta yang memilih metode kehadiran tatap muka (<strong className="font-bold">LURING</strong>).</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Top Luring Provinces */}
+                    <div className="space-y-3.5">
+                      <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Top Provinsi Asal Luring</h5>
+                      {sortedLuringProvinces.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic py-4">Belum ada data pendaftar luring.</p>
+                      ) : (
+                        sortedLuringProvinces.map(([prov, count], index) => {
+                          const maxVal = Math.max(...Object.values(luringProvinceCounts), 1);
+                          const percentage = Math.round((count / (stats.luring || 1)) * 100) || 0;
+                          const widthPercentage = Math.round((count / maxVal) * 100) || 0;
+                          return (
+                            <div key={prov} className="space-y-1">
+                              <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
+                                <span className="truncate max-w-[70%]" title={prov}>{index + 1}. {prov}</span>
+                                <span className="text-indigo-600 font-mono">{count} org ({percentage}%)</span>
+                              </div>
+                              <div className="w-full bg-indigo-100 h-2 rounded-full overflow-hidden">
+                                <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${widthPercentage}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Top Luring Cities */}
+                    <div className="space-y-3.5">
+                      <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Top Kabupaten/Kota Luring</h5>
+                      {sortedLuringCities.length === 0 ? (
+                         <p className="text-xs text-slate-400 italic py-4">Belum ada data pendaftar luring.</p>
+                      ) : (
+                        sortedLuringCities.map(([city, count], index) => {
+                          const maxVal = Math.max(...Object.values(luringCityCounts), 1);
+                          const percentage = Math.round((count / (stats.luring || 1)) * 100) || 0;
+                          const widthPercentage = Math.round((count / maxVal) * 100) || 0;
+                          return (
+                            <div key={city} className="space-y-1">
+                              <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
+                                <span className="truncate max-w-[70%]" title={city}>{index + 1}. {city}</span>
+                                <span className="text-teal-600 font-mono">{count} org ({percentage}%)</span>
+                              </div>
+                              <div className="w-full bg-teal-100 h-2 rounded-full overflow-hidden">
+                                <div className="bg-teal-500 h-full rounded-full transition-all duration-500" style={{ width: `${widthPercentage}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* Rekap Kategori Khusus Section */}
