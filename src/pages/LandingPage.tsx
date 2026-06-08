@@ -305,12 +305,13 @@ export default function LandingPage() {
         >
           <button 
             onClick={() => navigate('/login')}
-            className="group relative px-8 py-4 bg-teal-600 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(13,148,136,0.4)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
+            style={{ animationDuration: '3s' }}
+            className="animate-pulse group relative px-8 py-4 bg-orange-500 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              Mulai Registrasi <span className="transition-transform group-hover:translate-x-1">→</span>
+              Mulai Registrasi
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           </button>
           
           <button 
