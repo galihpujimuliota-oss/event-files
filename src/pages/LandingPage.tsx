@@ -1,12 +1,18 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, MapPin, CreditCard, Info, Copy, Check, Sparkles, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { store } from '../store/store';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeAccount, setActiveAccount] = useState<string | null>(null);
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+
+  useEffect(() => {
+    store.getSettings().then(s => setIsRegistrationOpen(s?.isRegistrationOpen !== false));
+  }, []);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -303,16 +309,27 @@ export default function LandingPage() {
           transition={{ delay: 0.5, duration: 0.4 }}
           className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-10 pb-6"
         >
-          <button 
-            onClick={() => navigate('/login')}
-            style={{ animationDuration: '3s' }}
-            className="animate-pulse group relative px-8 py-4 bg-orange-500 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
-          >
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              Mulai Registrasi
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          </button>
+          {isRegistrationOpen ? (
+            <button 
+              onClick={() => navigate('/login')}
+              style={{ animationDuration: '3s' }}
+              className="animate-pulse group relative px-8 py-4 bg-orange-500 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                Mulai Registrasi
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            </button>
+          ) : (
+            <button 
+              disabled
+              className="group relative px-8 py-4 bg-slate-400 text-slate-100 rounded-xl font-semibold overflow-hidden w-full sm:w-auto min-w-[240px] cursor-not-allowed opacity-80"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                Registrasi Ditutup
+              </span>
+            </button>
+          )}
           
           <button 
             onClick={() => navigate('/cek-data')}

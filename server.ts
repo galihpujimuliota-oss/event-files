@@ -14,9 +14,15 @@ app.use(express.json({ limit: '10mb' }));
 const DB_FILE = path.join(process.cwd(), 'db.json');
 let memoryDb: any = {};
 
+const SETTINGS_FILE = path.join(process.cwd(), 'settings.json');
+let memorySettings: any = { isRegistrationOpen: true };
+
 try {
   if (fs.existsSync(DB_FILE)) {
     memoryDb = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+  }
+  if (fs.existsSync(SETTINGS_FILE)) {
+    memorySettings = { ...memorySettings, ...JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')) };
   }
 } catch (e) {
   memoryDb = {};
@@ -29,6 +35,25 @@ const saveDb = () => {
     console.error('Failed to save DB', e);
   }
 };
+
+const saveSettings = () => {
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(memorySettings, null, 2));
+  } catch (e) {
+    console.error('Failed to save Settings', e);
+  }
+};
+
+// API: Settings
+app.get('/api/settings', (req, res) => {
+  res.json(memorySettings);
+});
+
+app.post('/api/settings', (req, res) => {
+  memorySettings = { ...memorySettings, ...req.body };
+  saveSettings();
+  res.json(memorySettings);
+});
 
 // API: Get all attendees
 app.get('/api/attendees', (req, res) => {

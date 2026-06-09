@@ -480,6 +480,7 @@ export default function AdminScanner() {
   const [stats, setStats] = useState({ total: 0, luring: 0, daring: 0, verified: 0 });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
 
   const updateStats = async () => {
     setIsRefreshing(true);
@@ -487,6 +488,10 @@ export default function AdminScanner() {
       const allDict = await store.getAllAttendees();
       const all = Object.values(allDict).filter(a => a.isRegistered); // Pastikan merekap yang udah register final
       setAttendeesList(all);
+      
+      const settings = await store.getSettings();
+      setIsRegistrationOpen(settings?.isRegistrationOpen !== false);
+
       setStats({
         total: all.length,
         daring: all.filter(a => a.attendanceType === 'DARING').length,
@@ -496,6 +501,13 @@ export default function AdminScanner() {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleToggleRegistration = async () => {
+    const newState = !isRegistrationOpen;
+    setIsRegistrationOpen(newState);
+    await store.updateSettings({ isRegistrationOpen: newState });
+    addLog(`Tombol registrasi diubah ke status: ${newState ? 'ON (DIBUKA)' : 'OFF (DITUTUP)'}`);
   };
 
   useEffect(() => {
@@ -669,6 +681,18 @@ export default function AdminScanner() {
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Local DB
               </span>
             )}
+            <button
+              onClick={handleToggleRegistration}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                isRegistrationOpen 
+                  ? 'bg-teal-850 hover:bg-teal-900 border border-teal-500/30' 
+                  : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-100 shadow-[0_0_10px_rgba(244,63,94,0.3)] border border-rose-500/50'
+              }`}
+              title="Tutup/Buka Form Registrasi Peserta"
+            >
+              <div className={`w-2 h-2 rounded-full ${isRegistrationOpen ? 'bg-teal-400' : 'bg-rose-400 animate-pulse'}`} />
+              <span className="hidden xs:inline">{isRegistrationOpen ? 'Form Dibuka' : 'Form Ditutup'}</span>
+            </button>
             <button 
               onClick={() => updateStats()} 
               disabled={isRefreshing}

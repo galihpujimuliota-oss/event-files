@@ -596,5 +596,33 @@ export const store = {
     try {
       localStorage.removeItem('yudisium_attendee');
     } catch (e) {}
+  },
+
+  async getSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error('Failed to get settings:', e);
+    }
+    return { isRegistrationOpen: true };
+  },
+
+  async updateSettings(settings: any) {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error('Failed to update settings:', e);
+    }
+    return settings;
   }
 };
