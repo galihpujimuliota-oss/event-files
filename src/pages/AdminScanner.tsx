@@ -486,7 +486,7 @@ export default function AdminScanner() {
     setIsRefreshing(true);
     try {
       const allDict = await store.getAllAttendees();
-      const all = Object.values(allDict).filter(a => a.isRegistered); // Pastikan merekap yang udah register final
+      const all = Object.values(allDict).filter(a => a.isRegistered && a.npk !== 'APP_SETTINGS'); // Pastikan merekap yang udah register final
       setAttendeesList(all);
       
       const settings = await store.getSettings();

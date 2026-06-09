@@ -599,18 +599,51 @@ export const store = {
   },
 
   async getSettings() {
+    let settings = { isRegistrationOpen: true };
+    // 1. Get from Supabase first if available (sync across instances)
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('attendees').select('attendanceType').eq('npk', 'APP_SETTINGS').maybeSingle();
+        if (!error && data) {
+          settings.isRegistrationOpen = data.attendanceType !== 'CLOSED';
+          return settings;
+        }
+      } catch (e) {
+        console.error('Failed to get settings from Supabase:', e);
+      }
+    }
+
+    // 2. Fallback to Local API
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetch(`/api/settings?t=${Date.now()}`);
       if (res.ok) {
-        return await res.json();
+        const localSettings = await res.json();
+        return localSettings;
       }
     } catch (e) {
       console.error('Failed to get settings:', e);
     }
-    return { isRegistrationOpen: true };
+    return settings;
   },
 
   async updateSettings(settings: any) {
+    // 1. Save to Supabase to sync across instances
+    if (supabase) {
+      try {
+        const payload = {
+          id: '99999999-9999-4999-a999-999999999999',
+          npk: 'APP_SETTINGS',
+          fullName: 'System Settings (DO NOT DELETE)',
+          attendanceType: settings.isRegistrationOpen ? 'OPEN' : 'CLOSED',
+          isRegistered: true,
+          status: 'VERIFIED'
+        };
+        const { error } = await supabase.from('attendees').upsert([payload]);
+        if (error) console.error('Failed to update Supabase settings:', error);
+      } catch (e) {}
+    }
+
+    // 2. Save to Local API
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
