@@ -309,27 +309,22 @@ export default function LandingPage() {
           transition={{ delay: 0.5, duration: 0.4 }}
           className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-10 pb-6"
         >
-          {isRegistrationOpen ? (
-            <button 
-              onClick={() => navigate('/login')}
-              style={{ animationDuration: '3s' }}
-              className="animate-pulse group relative px-8 py-4 bg-orange-500 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Mulai Registrasi
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </button>
-          ) : (
-            <button 
-              disabled
-              className="group relative px-8 py-4 bg-slate-400 text-slate-100 rounded-xl font-semibold overflow-hidden w-full sm:w-auto min-w-[240px] cursor-not-allowed opacity-80"
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Registrasi Ditutup
-              </span>
-            </button>
-          )}
+          <button 
+            onClick={() => {
+              if (!isRegistrationOpen) {
+                alert('Mohon maaf, sesi registrasi telah ditutup oleh Admin.');
+              } else {
+                navigate('/login');
+              }
+            }}
+            style={{ animationDuration: '3s' }}
+            className="animate-pulse group relative px-8 py-4 bg-orange-500 text-white rounded-xl font-semibold shadow-[0_8px_20px_-4px_rgba(249,115,22,0.5)] overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-w-[240px]"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              Mulai Registrasi <span className="transition-transform group-hover:translate-x-1">→</span>
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          </button>
           
           <button 
             onClick={() => navigate('/cek-data')}

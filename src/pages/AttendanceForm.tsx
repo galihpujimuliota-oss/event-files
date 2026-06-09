@@ -9,6 +9,11 @@ export default function AttendanceForm() {
   const [attendee, setAttendee] = useState<AttendeeData | null>(null);
   const [selectedType, setSelectedType] = useState<'DARING' | 'LURING' | ''>('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    store.getSettings().then(s => setIsRegistrationOpen(s?.isRegistrationOpen !== false));
+  }, []);
 
   useEffect(() => {
     const data = store.getAttendee();
@@ -23,7 +28,17 @@ export default function AttendanceForm() {
     }
   }, [navigate]);
 
-  if (!isLoaded || !attendee) {
+  if (isRegistrationOpen === false) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center bg-white rounded-2xl min-h-[400px]">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Registrasi Ditutup</h2>
+        <p className="text-slate-500 text-center mb-6">Mohon maaf, sesi pendaftaran telah berakhir atau ditutup oleh Admin.</p>
+        <button onClick={() => navigate('/')} className="px-6 py-2 bg-teal-600 text-white rounded-xl font-medium">Kembali ke Beranda</button>
+      </div>
+    );
+  }
+
+  if (!isLoaded || !attendee || isRegistrationOpen === null) {
     return (
       <div className="p-12 flex flex-col items-center justify-center bg-white rounded-2xl min-h-[400px]">
         <Loader2 className="w-8 h-8 text-teal-600 animate-spin mb-4" />
