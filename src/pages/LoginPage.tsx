@@ -217,7 +217,7 @@ export default function LoginPage() {
             </div>
           ) : (
             <button
-              onClick={isSupabaseConnected ? handleRealLogin : handleMockLogin}
+              onClick={handleMockLogin}
               disabled={isConnecting}
               className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl p-4 text-slate-700 font-semibold hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden animate-fade-in"
             >
