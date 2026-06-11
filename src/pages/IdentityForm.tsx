@@ -237,6 +237,16 @@ export default function IdentityForm() {
       for (const other of otherAttendees) {
         let reasons = [];
 
+        const myNpk = String(data.npk || "")
+          .trim()
+          .toLowerCase();
+        const otherNpk = String(other.npk || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(myNpk) && myNpk === otherNpk) {
+          reasons.push("NPK / Akun Siaga (" + data.npk + ")");
+        }
+
         const myName = String(data.fullName || "")
           .trim()
           .toLowerCase();
@@ -298,17 +308,20 @@ export default function IdentityForm() {
         }
 
         const hasName = reasons.some((r) => r.startsWith("Nama Lengkap"));
+        const hasNpk = reasons.some((r) => r.startsWith("NPK"));
         const hasPhone = reasons.some((r) => r.startsWith("Nomor WhatsApp"));
         const hasSchool = reasons.some((r) => r.startsWith("Asal Sekolah"));
         const hasEmail = reasons.some((r) => r.startsWith("Email"));
 
         // Dua data dianggap benar-benar ganda (orang yang SAMA) jika:
-        // - Email persis sama
-        // - ATAU No WA persis sama
-        // - ATAU (Nama persis sama DAN Sekolah persis sama)
-        // - ATAU (Nama persis sama DAN No WA persis sama)
-        // - ATAU (Nama persis sama DAN Email persis sama)
+        // - NPK/Siaga persis sama
+        // - OR Email persis sama
+        // - OR No WA persis sama
+        // - OR (Nama persis sama DAN Sekolah persis sama)
+        // - OR (Nama persis sama DAN No WA persis sama)
+        // - OR (Nama persis sama DAN Email persis sama)
         if (
+          hasNpk ||
           (hasEmail && hasName) ||
           (hasPhone && hasName) ||
           (hasName && hasSchool)

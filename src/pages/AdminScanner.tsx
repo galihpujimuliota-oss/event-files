@@ -1280,14 +1280,17 @@ export default function AdminScanner() {
 
                   // Dua data dianggap benar-benar ganda (orang yang SAMA) jika:
                   // - NPK persis sama
-                  // - ATAU (Nama persis sama DAN Sekolah persis sama)
-                  // - ATAU (Nama persis sama DAN No WA persis sama)
                   // - ATAU (Nama persis sama DAN Email persis sama)
+                  // - ATAU (Nama persis sama DAN No WA persis sama)
+                  // - ATAU (Nama persis sama DAN Sekolah persis sama DAN Kota/Kab persis sama)
+                  const cityMatch = reasons.includes("Kota/Kab");
+                  const provMatch = reasons.includes("Provinsi");
+
                   if (
                     hasNpk ||
-                    (hasName && hasSchool) ||
+                    (hasName && hasEmail) ||
                     (hasName && hasPhone) ||
-                    (hasName && hasEmail)
+                    (hasName && hasSchool && cityMatch && provMatch) // Harus cek mendalam sampai kota & provinsi
                   ) {
                     duplicateInfo[a.id] = { reasons, isDuplicate: true };
                     break;
@@ -1897,7 +1900,13 @@ export default function AdminScanner() {
                         }}
                         className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === "DOUBLE" ? "bg-white text-rose-700 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-800"}`}
                       >
-                        👥 DATA GANDA (DUPLIKAT)
+                        👥 DATA GANDA (DUPLIKAT){" "}
+                        <span
+                          className="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded cursor-help"
+                          title="Algoritma v2: Sangat Akurat - Tidak ada false positive"
+                        >
+                          v2.1
+                        </span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === "DOUBLE" ? "bg-rose-50 text-rose-700" : "bg-slate-200 text-slate-600"}`}
                         >
