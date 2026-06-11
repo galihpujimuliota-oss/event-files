@@ -263,15 +263,15 @@ export default function CheckStatus() {
 
         <div className="relative z-10 max-w-xl mx-auto text-center mb-10">
           <h2 className="text-2xl font-bold text-slate-800 mb-3">Cek Status Registrasi</h2>
-          <p className="text-slate-500 text-sm">Masukkan Nomor Peserta (NPK/NIM) Anda untuk memeriksa status pendaftaran Anda pada acara Yudisium.</p>
+          <p className="text-slate-500 text-sm md:text-base leading-relaxed">Silahkan masukkan NPK/PEG.ID/Siaga Anda untuk memeriksa status pendaftaran Anda pada acara Yudisium. Pastikan NPK/PEG.ID/Siaga tersebut adalah nomor yang sebelumnya diinput ketika melakukan registrasi awal. Apabila sesuai maka data anda telah terekap, apabila tidak sesuai maka silahkan melakukan registrasi ulang.</p>
         </div>
 
-        <form onSubmit={handleSearch} className="max-w-xl mx-auto relative z-10 flex gap-3 mb-10">
+        <form onSubmit={handleSearch} className="max-w-xl mx-auto relative z-10 flex flex-col sm:flex-row gap-3 mb-10">
           <input
             type="text"
             value={npk}
             onChange={(e) => setNpk(e.target.value)}
-            placeholder="Masukkan NPK / NIM Anda"
+            placeholder="NPK / PEG.ID / Siaga"
             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all font-mono"
             required
           />
