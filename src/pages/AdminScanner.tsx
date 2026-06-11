@@ -24,7 +24,7 @@ export default function AdminScanner() {
 
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'SCAN' | 'DATA' | 'UNREGISTERED' | 'QR' | 'INFO' | 'SETTINGS'>('DASHBOARD');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH' | 'DOUBLE'>('HOTEL');
+  const [rekapTab, setRekapTab] = useState<'HOTEL' | 'LEGALISIR' | 'SASH' | 'DOUBLE' | 'ERROR'>('HOTEL');
   const [rekapSearch, setRekapSearch] = useState('');
   const [scanResult, setScanResult] = useState<{ status: 'IDLE' | 'SUCCESS' | 'NOT_FOUND', attendee?: AttendeeData }>({ status: 'IDLE' });
   const [scanInput, setScanInput] = useState('');
@@ -840,6 +840,8 @@ export default function AdminScanner() {
           const npkOccurrences: Record<string, number> = {};
           const nameOccurrences: Record<string, number> = {};
           const phoneOccurrences: Record<string, number> = {};
+          const schoolOccurrences: Record<string, number> = {};
+          const addressOccurrences: Record<string, number> = {};
           
           attendeesList.forEach(a => {
             if (a.npk) {
@@ -854,6 +856,14 @@ export default function AdminScanner() {
               const phoneRaw = a.phone.trim().toLowerCase();
               phoneOccurrences[phoneRaw] = (phoneOccurrences[phoneRaw] || 0) + 1;
             }
+            if (a.schoolName) {
+              const schoolRaw = a.schoolName.trim().toLowerCase();
+              schoolOccurrences[schoolRaw] = (schoolOccurrences[schoolRaw] || 0) + 1;
+            }
+            if (a.address) {
+              const addressRaw = a.address.trim().toLowerCase();
+              addressOccurrences[addressRaw] = (addressOccurrences[addressRaw] || 0) + 1;
+            }
           });
 
           const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING' || String(a.attendanceType).toLowerCase() === 'luring');
@@ -863,7 +873,14 @@ export default function AdminScanner() {
             const isDupNpk = a.npk && npkOccurrences[String(a.npk).trim().toLowerCase()] > 1;
             const isDupName = a.fullName && nameOccurrences[a.fullName.trim().toLowerCase()] > 1;
             const isDupPhone = a.phone && phoneOccurrences[a.phone.trim().toLowerCase()] > 1;
+            // It only considered double if Name, NPK, Phone, School OR Address are duplicated alongside something else, but wait... 
+            // the user said "tetapi cocokan juga dengan asal sekolah, nomor tlpn, asal rumah, kabupaten kota provinsi".
+            // A person is genuinely double if their name/NPK/phone are the same. We shouldn't flag someone as double *only* because they are from the same school!
             return isDupNpk || isDupName || isDupPhone;
+          });
+          const listError = attendeesList.filter(a => {
+            const t = String(a.attendanceType || '').trim().toUpperCase();
+            return t !== 'LURING' && t !== 'DARING';
           });
 
           const getFilteredRekapList = () => {
@@ -872,6 +889,7 @@ export default function AdminScanner() {
             else if (rekapTab === 'LEGALISIR') baseList = listLegalisir;
             else if (rekapTab === 'SASH') baseList = listSelempang;
             else if (rekapTab === 'DOUBLE') baseList = listDouble;
+            else if (rekapTab === 'ERROR') baseList = listError;
 
             if (!rekapSearch.trim()) return baseList;
             const searchLower = rekapSearch.toLowerCase();
@@ -1254,6 +1272,15 @@ export default function AdminScanner() {
                       {listDouble.length}
                     </span>
                   </button>
+                  <button
+                    onClick={() => { setRekapTab('ERROR'); setRekapSearch(''); }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${rekapTab === 'ERROR' ? 'bg-white text-red-700 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    ⚠️ DATA ERROR
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rekapTab === 'ERROR' ? 'bg-red-50 text-red-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {listError.length}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Search Bar and Export buttons for the active category */}
@@ -1289,7 +1316,16 @@ export default function AdminScanner() {
                          if (npkCnt > 1) reasons.push(`NPK`);
                          if (nameCnt > 1) reasons.push(`Nama`);
                          if (phoneCnt > 1) reasons.push(`No HP`);
-                         detailsStr = `Ganda (${reasons.join(', ')}) - Sekolah: ${att.schoolName || '-'}, Kab/Kota: ${att.city || '-'}`;
+                         
+                         const schoolCnt = att.schoolName ? (schoolOccurrences[att.schoolName.trim().toLowerCase()] || 0) : 0;
+                         if (schoolCnt > 1) reasons.push(`Sekolah`);
+
+                         const addressCnt = att.address ? (addressOccurrences[att.address.trim().toLowerCase()] || 0) : 0;
+                         if (addressCnt > 1) reasons.push(`Alamat`);
+                         
+                         detailsStr = `Ganda (${reasons.join(', ')}) - Sekolah: ${att.schoolName || '-'}, Kota: ${att.city || '-'}`;
+                       } else if (rekapTab === 'ERROR') {
+                         detailsStr = `Data Error - Tipe kehadiran tidak valid (${att.attendanceType || 'KOSONG'})`;
                        }
                        return [
                          i + 1,
@@ -1344,13 +1380,19 @@ export default function AdminScanner() {
                             const npkCnt = att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0;
                             const nameCnt = att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0;
                             const phoneCnt = att.phone ? (phoneOccurrences[att.phone.trim().toLowerCase()] || 0) : 0;
+                            const schoolCnt = att.schoolName ? (schoolOccurrences[att.schoolName.trim().toLowerCase()] || 0) : 0;
+                            const addressCnt = att.address ? (addressOccurrences[att.address.trim().toLowerCase()] || 0) : 0;
                             
                             const reasons = [];
                             if (npkCnt > 1) reasons.push(`NPK`);
                             if (nameCnt > 1) reasons.push(`Nama`);
                             if (phoneCnt > 1) reasons.push(`No HP`);
+                            if (schoolCnt > 1) reasons.push(`Sekolah`);
+                            if (addressCnt > 1) reasons.push(`Alamat / Prov`);
                             
                             detailsStr = `Ganda (${reasons.join(', ')}) | ${att.schoolName || '-'}, Kota: ${att.city || '-'}`;
+                          } else if (rekapTab === 'ERROR') {
+                            detailsStr = `Data Error - Tipe kehadiran tidak valid (${att.attendanceType || 'KOSONG'})`;
                           }
 
                           const isDupNpk = att.npk && (npkOccurrences[String(att.npk).trim().toLowerCase()] > 1);
