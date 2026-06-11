@@ -837,47 +837,61 @@ export default function AdminScanner() {
           const hotelProofCount = attendeesList.filter(a => !!a.paymentHotelProofUrl).length;
           const legalisirProofCount = attendeesList.filter(a => !!a.paymentLegalisirProofUrl).length;
 
-          const npkOccurrences: Record<string, number> = {};
-          const nameOccurrences: Record<string, number> = {};
-          const phoneOccurrences: Record<string, number> = {};
-          const schoolOccurrences: Record<string, number> = {};
-          const addressOccurrences: Record<string, number> = {};
-          
+          const norm = (s: any) => String(s || '').trim().toLowerCase();
+
+          const npkMap = new Map<string, any[]>();
+          const emailMap = new Map<string, any[]>();
+          const phoneMap = new Map<string, any[]>();
+          const nameMap = new Map<string, any[]>();
+
           attendeesList.forEach(a => {
-            if (a.npk) {
-              const npkRaw = String(a.npk).trim().toLowerCase();
-              npkOccurrences[npkRaw] = (npkOccurrences[npkRaw] || 0) + 1;
-            }
-            if (a.fullName) {
-              const nameRaw = a.fullName.trim().toLowerCase();
-              nameOccurrences[nameRaw] = (nameOccurrences[nameRaw] || 0) + 1;
-            }
-            if (a.phone) {
-              const phoneRaw = a.phone.trim().toLowerCase();
-              phoneOccurrences[phoneRaw] = (phoneOccurrences[phoneRaw] || 0) + 1;
-            }
-            if (a.schoolName) {
-              const schoolRaw = a.schoolName.trim().toLowerCase();
-              schoolOccurrences[schoolRaw] = (schoolOccurrences[schoolRaw] || 0) + 1;
-            }
-            if (a.address) {
-              const addressRaw = a.address.trim().toLowerCase();
-              addressOccurrences[addressRaw] = (addressOccurrences[addressRaw] || 0) + 1;
+            const npkRaw = norm(a.npk); if (npkRaw) { if (!npkMap.has(npkRaw)) npkMap.set(npkRaw, []); npkMap.get(npkRaw)!.push(a); }
+            const emailRaw = norm(a.email); if (emailRaw) { if (!emailMap.has(emailRaw)) emailMap.set(emailRaw, []); emailMap.get(emailRaw)!.push(a); }
+            const phoneRaw = norm(a.phoneWA); if (phoneRaw) { if (!phoneMap.has(phoneRaw)) phoneMap.set(phoneRaw, []); phoneMap.get(phoneRaw)!.push(a); }
+            const nameRaw = norm(a.fullName); if (nameRaw) { if (!nameMap.has(nameRaw)) nameMap.set(nameRaw, []); nameMap.get(nameRaw)!.push(a); }
+          });
+
+          const duplicateInfo: Record<string, { reasons: string[], isDuplicate: boolean }> = {};
+
+          attendeesList.forEach(a => {
+            const potentialDups = new Set<any>();
+            
+            const npkRaw = norm(a.npk); if (npkRaw && npkMap.get(npkRaw)!.length > 1) npkMap.get(npkRaw)!.forEach(x => potentialDups.add(x));
+            const emailRaw = norm(a.email); if (emailRaw && emailMap.get(emailRaw)!.length > 1) emailMap.get(emailRaw)!.forEach(x => potentialDups.add(x));
+            const phoneRaw = norm(a.phoneWA); if (phoneRaw && phoneMap.get(phoneRaw)!.length > 1) phoneMap.get(phoneRaw)!.forEach(x => potentialDups.add(x));
+            const nameRaw = norm(a.fullName); if (nameRaw && nameMap.get(nameRaw)!.length > 1) nameMap.get(nameRaw)!.forEach(x => potentialDups.add(x));
+            
+            potentialDups.delete(a); 
+            
+            for (const b of potentialDups) {
+                const reasons: string[] = [];
+                if (norm(a.fullName) === norm(b.fullName)) reasons.push("Nama");
+                if (norm(a.npk) === norm(b.npk)) reasons.push("NPK");
+                if (norm(a.email) === norm(b.email)) reasons.push("Email");
+                if (norm(a.phoneWA) === norm(b.phoneWA)) reasons.push("No WA");
+                if (norm(a.schoolName) === norm(b.schoolName)) reasons.push("Sekolah");
+                if (norm(a.province) === norm(b.province)) reasons.push("Provinsi");
+                if (norm(a.city) === norm(b.city)) reasons.push("Kota/Kab");
+                
+                const hasName = reasons.includes("Nama");
+                const hasNpk = reasons.includes("NPK");
+                const hasEmail = reasons.includes("Email");
+                const hasPhone = reasons.includes("No WA");
+                const hasSchool = reasons.includes("Sekolah");
+                const hasCity = reasons.includes("Kota/Kab");
+                const hasProv = reasons.includes("Provinsi");
+                
+                if (hasNpk || hasEmail || hasPhone || (hasName && hasSchool) || (hasName && hasCity && hasProv) || reasons.length >= 3) {
+                    duplicateInfo[a.id] = { reasons, isDuplicate: true };
+                    break;
+                }
             }
           });
 
           const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING' || String(a.attendanceType).toLowerCase() === 'luring');
           const listLegalisir = attendeesList;
           const listSelempang = attendeesList.filter(a => a.wantsSash === true);
-          const listDouble = attendeesList.filter(a => {
-            const isDupNpk = a.npk && npkOccurrences[String(a.npk).trim().toLowerCase()] > 1;
-            const isDupName = a.fullName && nameOccurrences[a.fullName.trim().toLowerCase()] > 1;
-            const isDupPhone = a.phone && phoneOccurrences[a.phone.trim().toLowerCase()] > 1;
-            // It only considered double if Name, NPK, Phone, School OR Address are duplicated alongside something else, but wait... 
-            // the user said "tetapi cocokan juga dengan asal sekolah, nomor tlpn, asal rumah, kabupaten kota provinsi".
-            // A person is genuinely double if their name/NPK/phone are the same. We shouldn't flag someone as double *only* because they are from the same school!
-            return isDupNpk || isDupName || isDupPhone;
-          });
+          const listDouble = attendeesList.filter(a => duplicateInfo[a.id]?.isDuplicate);
           const listError = attendeesList.filter(a => {
             const t = String(a.attendanceType || '').trim().toUpperCase();
             return t !== 'LURING' && t !== 'DARING';
@@ -1309,20 +1323,8 @@ export default function AdminScanner() {
                        } else if (rekapTab === 'SASH') {
                          detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
                        } else if (rekapTab === 'DOUBLE') {
-                         const npkCnt = att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0;
-                         const nameCnt = att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0;
-                         const phoneCnt = att.phone ? (phoneOccurrences[att.phone.trim().toLowerCase()] || 0) : 0;
-                         const reasons = [];
-                         if (npkCnt > 1) reasons.push(`NPK`);
-                         if (nameCnt > 1) reasons.push(`Nama`);
-                         if (phoneCnt > 1) reasons.push(`No HP`);
-                         
-                         const schoolCnt = att.schoolName ? (schoolOccurrences[att.schoolName.trim().toLowerCase()] || 0) : 0;
-                         if (schoolCnt > 1) reasons.push(`Sekolah`);
-
-                         const addressCnt = att.address ? (addressOccurrences[att.address.trim().toLowerCase()] || 0) : 0;
-                         if (addressCnt > 1) reasons.push(`Alamat`);
-                         
+                         const dupInfo = duplicateInfo[att.id];
+                         const reasons = dupInfo?.reasons || [];
                          detailsStr = `Ganda (${reasons.join(', ')}) - Sekolah: ${att.schoolName || '-'}, Kota: ${att.city || '-'}`;
                        } else if (rekapTab === 'ERROR') {
                          detailsStr = `Data Error - Tipe kehadiran tidak valid (${att.attendanceType || 'KOSONG'})`;
@@ -1377,28 +1379,14 @@ export default function AdminScanner() {
                             detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
                           } else if (rekapTab === 'DOUBLE') {
                             proofUrl = att.paymentLegalisirProofUrl || att.paymentHotelProofUrl || att.paymentSashProofUrl || '';
-                            const npkCnt = att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0;
-                            const nameCnt = att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0;
-                            const phoneCnt = att.phone ? (phoneOccurrences[att.phone.trim().toLowerCase()] || 0) : 0;
-                            const schoolCnt = att.schoolName ? (schoolOccurrences[att.schoolName.trim().toLowerCase()] || 0) : 0;
-                            const addressCnt = att.address ? (addressOccurrences[att.address.trim().toLowerCase()] || 0) : 0;
-                            
-                            const reasons = [];
-                            if (npkCnt > 1) reasons.push(`NPK`);
-                            if (nameCnt > 1) reasons.push(`Nama`);
-                            if (phoneCnt > 1) reasons.push(`No HP`);
-                            if (schoolCnt > 1) reasons.push(`Sekolah`);
-                            if (addressCnt > 1) reasons.push(`Alamat / Prov`);
-                            
+                            const dupInfo = duplicateInfo[att.id];
+                            const reasons = dupInfo?.reasons || [];
                             detailsStr = `Ganda (${reasons.join(', ')}) | ${att.schoolName || '-'}, Kota: ${att.city || '-'}`;
                           } else if (rekapTab === 'ERROR') {
                             detailsStr = `Data Error - Tipe kehadiran tidak valid (${att.attendanceType || 'KOSONG'})`;
                           }
 
-                          const isDupNpk = att.npk && (npkOccurrences[String(att.npk).trim().toLowerCase()] > 1);
-                          const isDupName = att.fullName && (nameOccurrences[att.fullName.trim().toLowerCase()] > 1);
-                          const isDupPhone = att.phone && (phoneOccurrences[att.phone.trim().toLowerCase()] > 1);
-                          const isDuplicate = isDupNpk || isDupName || isDupPhone;
+                          const isDuplicate = !!duplicateInfo[att.id]?.isDuplicate;
 
                           return (
                             <tr key={att.id} className={`hover:bg-slate-50/80 transition-colors ${isDuplicate ? 'bg-rose-50/20' : ''}`}>
