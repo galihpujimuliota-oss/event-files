@@ -477,7 +477,7 @@ export default function AdminScanner() {
     }
   };
 
-  const [stats, setStats] = useState({ total: 0, luring: 0, daring: 0, verified: 0 });
+  const [stats, setStats] = useState({ total: 0, luring: 0, daring: 0, verified: 0, error: 0 });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
@@ -492,10 +492,15 @@ export default function AdminScanner() {
       const settings = await store.getSettings();
       setIsRegistrationOpen(settings?.isRegistrationOpen !== false);
 
+      const luringCount = all.filter(a => String(a.attendanceType || '').trim().toUpperCase() === 'LURING').length;
+      const daringCount = all.filter(a => String(a.attendanceType || '').trim().toUpperCase() === 'DARING').length;
+      const errorCount = all.length - luringCount - daringCount;
+
       setStats({
         total: all.length,
-        daring: all.filter(a => String(a.attendanceType || '').trim().toUpperCase() === 'DARING').length,
-        luring: all.filter(a => String(a.attendanceType || '').trim().toUpperCase() === 'LURING').length,
+        daring: daringCount,
+        luring: luringCount,
+        error: errorCount,
         verified: all.filter(a => a.status === 'VERIFIED').length,
       });
     } finally {
@@ -764,9 +769,10 @@ export default function AdminScanner() {
 
         {/* Dashboard Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center relative">
             <p className="text-slate-500 text-xs font-bold mb-1">TOTAL PESERTA</p>
             <p className="text-3xl font-bold text-slate-800">{stats.total}</p>
+            {stats.error > 0 && <p className="text-[10px] text-rose-500 font-bold mt-1" title="Terdapat peserta yang data Kehadirannya tidak valid/kosong">⚠️ {stats.error} Error/Kosong</p>}
           </motion.div>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15 }} className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm text-center">
             <p className="text-indigo-600 text-xs font-bold mb-1">HADIR LURING</p>
@@ -833,6 +839,8 @@ export default function AdminScanner() {
 
           const npkOccurrences: Record<string, number> = {};
           const nameOccurrences: Record<string, number> = {};
+          const phoneOccurrences: Record<string, number> = {};
+          
           attendeesList.forEach(a => {
             if (a.npk) {
               const npkRaw = String(a.npk).trim().toLowerCase();
@@ -842,6 +850,10 @@ export default function AdminScanner() {
               const nameRaw = a.fullName.trim().toLowerCase();
               nameOccurrences[nameRaw] = (nameOccurrences[nameRaw] || 0) + 1;
             }
+            if (a.phone) {
+              const phoneRaw = a.phone.trim().toLowerCase();
+              phoneOccurrences[phoneRaw] = (phoneOccurrences[phoneRaw] || 0) + 1;
+            }
           });
 
           const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING' || String(a.attendanceType).toLowerCase() === 'luring');
@@ -850,7 +862,8 @@ export default function AdminScanner() {
           const listDouble = attendeesList.filter(a => {
             const isDupNpk = a.npk && npkOccurrences[String(a.npk).trim().toLowerCase()] > 1;
             const isDupName = a.fullName && nameOccurrences[a.fullName.trim().toLowerCase()] > 1;
-            return isDupNpk || isDupName;
+            const isDupPhone = a.phone && phoneOccurrences[a.phone.trim().toLowerCase()] > 1;
+            return isDupNpk || isDupName || isDupPhone;
           });
 
           const getFilteredRekapList = () => {
@@ -1269,7 +1282,14 @@ export default function AdminScanner() {
                        } else if (rekapTab === 'SASH') {
                          detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
                        } else if (rekapTab === 'DOUBLE') {
-                         detailsStr = `Terdeteksi Ganda (NPK-${att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0}x, Nama-${att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0}x)`;
+                         const npkCnt = att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0;
+                         const nameCnt = att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0;
+                         const phoneCnt = att.phone ? (phoneOccurrences[att.phone.trim().toLowerCase()] || 0) : 0;
+                         const reasons = [];
+                         if (npkCnt > 1) reasons.push(`NPK`);
+                         if (nameCnt > 1) reasons.push(`Nama`);
+                         if (phoneCnt > 1) reasons.push(`No HP`);
+                         detailsStr = `Ganda (${reasons.join(', ')}) - Sekolah: ${att.schoolName || '-'}, Kab/Kota: ${att.city || '-'}`;
                        }
                        return [
                          i + 1,
@@ -1323,10 +1343,20 @@ export default function AdminScanner() {
                             proofUrl = att.paymentLegalisirProofUrl || att.paymentHotelProofUrl || att.paymentSashProofUrl || '';
                             const npkCnt = att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0;
                             const nameCnt = att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0;
-                            detailsStr = `Terdeteksi Ganda (NPK::${npkCnt}x, Nama::${nameCnt}x)`;
+                            const phoneCnt = att.phone ? (phoneOccurrences[att.phone.trim().toLowerCase()] || 0) : 0;
+                            
+                            const reasons = [];
+                            if (npkCnt > 1) reasons.push(`NPK`);
+                            if (nameCnt > 1) reasons.push(`Nama`);
+                            if (phoneCnt > 1) reasons.push(`No HP`);
+                            
+                            detailsStr = `Ganda (${reasons.join(', ')}) | ${att.schoolName || '-'}, Kota: ${att.city || '-'}`;
                           }
 
-                          const isDuplicate = att.npk && (npkOccurrences[String(att.npk).trim().toLowerCase()] > 1) || att.fullName && (nameOccurrences[att.fullName.trim().toLowerCase()] > 1);
+                          const isDupNpk = att.npk && (npkOccurrences[String(att.npk).trim().toLowerCase()] > 1);
+                          const isDupName = att.fullName && (nameOccurrences[att.fullName.trim().toLowerCase()] > 1);
+                          const isDupPhone = att.phone && (phoneOccurrences[att.phone.trim().toLowerCase()] > 1);
+                          const isDuplicate = isDupNpk || isDupName || isDupPhone;
 
                           return (
                             <tr key={att.id} className={`hover:bg-slate-50/80 transition-colors ${isDuplicate ? 'bg-rose-50/20' : ''}`}>
