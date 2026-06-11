@@ -494,8 +494,8 @@ export default function AdminScanner() {
 
       setStats({
         total: all.length,
-        daring: all.filter(a => a.attendanceType === 'DARING').length,
-        luring: all.filter(a => a.attendanceType === 'LURING').length,
+        daring: all.filter(a => String(a.attendanceType || '').trim().toUpperCase() === 'DARING').length,
+        luring: all.filter(a => String(a.attendanceType || '').trim().toUpperCase() === 'LURING').length,
         verified: all.filter(a => a.status === 'VERIFIED').length,
       });
     } finally {
@@ -832,16 +832,26 @@ export default function AdminScanner() {
           const legalisirProofCount = attendeesList.filter(a => !!a.paymentLegalisirProofUrl).length;
 
           const npkOccurrences: Record<string, number> = {};
+          const nameOccurrences: Record<string, number> = {};
           attendeesList.forEach(a => {
             if (a.npk) {
-              npkOccurrences[a.npk] = (npkOccurrences[a.npk] || 0) + 1;
+              const npkRaw = String(a.npk).trim().toLowerCase();
+              npkOccurrences[npkRaw] = (npkOccurrences[npkRaw] || 0) + 1;
+            }
+            if (a.fullName) {
+              const nameRaw = a.fullName.trim().toLowerCase();
+              nameOccurrences[nameRaw] = (nameOccurrences[nameRaw] || 0) + 1;
             }
           });
 
-          const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING');
+          const listHotel = attendeesList.filter(a => a.attendanceType === 'LURING' || String(a.attendanceType).toLowerCase() === 'luring');
           const listLegalisir = attendeesList;
           const listSelempang = attendeesList.filter(a => a.wantsSash === true);
-          const listDouble = attendeesList.filter(a => a.npk && npkOccurrences[a.npk] > 1);
+          const listDouble = attendeesList.filter(a => {
+            const isDupNpk = a.npk && npkOccurrences[String(a.npk).trim().toLowerCase()] > 1;
+            const isDupName = a.fullName && nameOccurrences[a.fullName.trim().toLowerCase()] > 1;
+            return isDupNpk || isDupName;
+          });
 
           const getFilteredRekapList = () => {
             let baseList = [];
@@ -1259,7 +1269,7 @@ export default function AdminScanner() {
                        } else if (rekapTab === 'SASH') {
                          detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
                        } else if (rekapTab === 'DOUBLE') {
-                         detailsStr = `Terdeteksi ${npkOccurrences[att.npk]}x Entri`;
+                         detailsStr = `Terdeteksi Ganda (NPK-${att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0}x, Nama-${att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0}x)`;
                        }
                        return [
                          i + 1,
@@ -1311,18 +1321,22 @@ export default function AdminScanner() {
                             detailsStr = att.paymentSashAccountName ? `${att.paymentSashBank} an. ${att.paymentSashAccountName} (${att.paymentSashAccountNumber})` : '';
                           } else if (rekapTab === 'DOUBLE') {
                             proofUrl = att.paymentLegalisirProofUrl || att.paymentHotelProofUrl || att.paymentSashProofUrl || '';
-                            detailsStr = `Terdeteksi Ganda (${npkOccurrences[att.npk]}x)`;
+                            const npkCnt = att.npk ? (npkOccurrences[String(att.npk).trim().toLowerCase()] || 0) : 0;
+                            const nameCnt = att.fullName ? (nameOccurrences[att.fullName.trim().toLowerCase()] || 0) : 0;
+                            detailsStr = `Terdeteksi Ganda (NPK::${npkCnt}x, Nama::${nameCnt}x)`;
                           }
 
+                          const isDuplicate = att.npk && (npkOccurrences[String(att.npk).trim().toLowerCase()] > 1) || att.fullName && (nameOccurrences[att.fullName.trim().toLowerCase()] > 1);
+
                           return (
-                            <tr key={att.id} className={`hover:bg-slate-50/80 transition-colors ${npkOccurrences[att.npk] > 1 ? 'bg-rose-50/20' : ''}`}>
+                            <tr key={att.id} className={`hover:bg-slate-50/80 transition-colors ${isDuplicate ? 'bg-rose-50/20' : ''}`}>
                               <td className="px-4 py-3 text-slate-400 font-mono text-center">{startRekapIndex + index + 1}</td>
                               <td className="px-4 py-3 font-medium">
                                 <div className="font-bold text-slate-850 flex flex-wrap items-center gap-1.5">
                                   {att.fullName}
-                                  {npkOccurrences[att.npk] > 1 && (
+                                  {isDuplicate && (
                                     <span className="shrink-0 bg-rose-50 border border-rose-220 text-rose-700 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold tracking-wider uppercase">
-                                      ⚠️ GANDA ({npkOccurrences[att.npk]}x)
+                                      ⚠️ GANDA
                                     </span>
                                   )}
                                 </div>
