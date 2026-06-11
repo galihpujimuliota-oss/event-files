@@ -230,51 +230,88 @@ export default function IdentityForm() {
         (a) => a.id !== attendee.id && a.npk !== "APP_SETTINGS",
       );
 
+      const isSignificant = (s: string) =>
+        s.length > 3 &&
+        !["none", "null", "tidak ada", "-", "0", "na", "n/a"].includes(s);
+
       for (const other of otherAttendees) {
         let reasons = [];
-        if (
-          data.fullName &&
-          other.fullName?.toLowerCase() === data.fullName.toLowerCase()
-        ) {
+
+        const myName = String(data.fullName || "")
+          .trim()
+          .toLowerCase();
+        const otherName = String(other.fullName || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(myName) && myName === otherName) {
           reasons.push("Nama Lengkap (" + data.fullName + ")");
         }
-        if (
-          data.phoneWA &&
-          other.phoneWA?.toLowerCase() === data.phoneWA.toLowerCase()
-        ) {
+
+        const myPhone = String(data.phoneWA || "")
+          .trim()
+          .toLowerCase();
+        const otherPhone = String(other.phoneWA || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(myPhone) && myPhone === otherPhone) {
           reasons.push("Nomor WhatsApp (" + data.phoneWA + ")");
         }
-        if (
-          data.schoolName &&
-          other.schoolName?.toLowerCase() === data.schoolName.toLowerCase()
-        ) {
+
+        const myEmail = String(data.email || "")
+          .trim()
+          .toLowerCase();
+        const otherEmail = String(other.email || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(myEmail) && myEmail === otherEmail) {
+          reasons.push("Email (" + data.email + ")");
+        }
+
+        const mySchool = String(data.schoolName || "")
+          .trim()
+          .toLowerCase();
+        const otherSchool = String(other.schoolName || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(mySchool) && mySchool === otherSchool) {
           reasons.push("Asal Sekolah (" + data.schoolName + ")");
         }
-        if (
-          data.address &&
-          other.address?.toLowerCase() === data.address.toLowerCase()
-        ) {
-          reasons.push("Asal Rumah");
+
+        const myCity = String(data.city || "")
+          .trim()
+          .toLowerCase();
+        const otherCity = String(other.city || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(myCity) && myCity === otherCity) {
+          reasons.push("Kabupaten/Kota (" + data.city + ")");
         }
-        if (
-          data.city &&
-          other.city?.toLowerCase() === data.city.toLowerCase() &&
-          data.province &&
-          other.province?.toLowerCase() === data.province.toLowerCase()
-        ) {
-          reasons.push("Geografi (" + data.city + ")");
+
+        const myProv = String(data.province || "")
+          .trim()
+          .toLowerCase();
+        const otherProv = String(other.province || "")
+          .trim()
+          .toLowerCase();
+        if (isSignificant(myProv) && myProv === otherProv) {
+          reasons.push("Provinsi (" + data.province + ")");
         }
 
         const hasName = reasons.some((r) => r.startsWith("Nama Lengkap"));
         const hasPhone = reasons.some((r) => r.startsWith("Nomor WhatsApp"));
         const hasSchool = reasons.some((r) => r.startsWith("Asal Sekolah"));
+        const hasEmail = reasons.some((r) => r.startsWith("Email"));
 
-        // Consider it a duplicate if Name+Phone, Name+School, Phone+School matches, or if 3+ fields match
+        // Dua data dianggap benar-benar ganda (orang yang SAMA) jika:
+        // - Email persis sama
+        // - ATAU No WA persis sama
+        // - ATAU (Nama persis sama DAN Sekolah persis sama)
+        // - ATAU (Nama persis sama DAN No WA persis sama)
+        // - ATAU (Nama persis sama DAN Email persis sama)
         if (
-          (hasName && hasPhone) ||
-          (hasName && hasSchool) ||
-          (hasPhone && hasSchool) ||
-          reasons.length >= 3
+          (hasEmail && hasName) ||
+          (hasPhone && hasName) ||
+          (hasName && hasSchool)
         ) {
           dupRecord = other;
           dupReasons = reasons;
