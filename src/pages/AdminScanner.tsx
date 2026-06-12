@@ -2667,10 +2667,56 @@ export default function AdminScanner() {
 
           {activeTab === "UNREGISTERED" &&
             (() => {
-              // Find NPKs inside ALLOWED_ATTENDEES that are NOT in attendeesList
-              const registeredNpks = new Set(attendeesList.map((a) => a.npk));
+              const norm = (s: any) =>
+                String(s || "")
+                  .trim()
+                  .toLowerCase();
+              const isSignificant = (s: string) =>
+                s.length > 3 &&
+                !["none", "null", "-", "0", "na", "n/a"].includes(s);
+
+              const regNpkSet = new Set<string>();
+              const regNameFieldMap = new Map<string, string[]>();
+
+              attendeesList.forEach((a) => {
+                const npk = norm(a.npk);
+                if (isSignificant(npk)) regNpkSet.add(npk);
+
+                const name = norm(a.fullName);
+                const field = norm(a.studyField);
+                if (isSignificant(name)) {
+                  if (!regNameFieldMap.has(name)) regNameFieldMap.set(name, []);
+                  if (field) regNameFieldMap.get(name)!.push(field);
+                }
+              });
+
               let unregisteredList = Object.entries(ALLOWED_ATTENDEES)
-                .filter(([npk]) => !registeredNpks.has(npk))
+                .filter(([npk, data]) => {
+                  const uNpk = norm(npk);
+                  const uName = norm(data.fullName);
+                  const uField = norm(data.studyField);
+
+                  // 1. Exact NPK match means they are already registered
+                  if (isSignificant(uNpk) && regNpkSet.has(uNpk)) return false;
+
+                  // 2. Exact Name Match + (Study Field match or loose match)
+                  if (isSignificant(uName) && regNameFieldMap.has(uName)) {
+                    const registeredFields = regNameFieldMap.get(uName)!;
+                    if (
+                      registeredFields.length === 0 || // Registered without a specific study field
+                      registeredFields.some(
+                        (f) =>
+                          f === uField ||
+                          uField.includes(f) ||
+                          f.includes(uField),
+                      )
+                    ) {
+                      return false; // Found a match, so considered registered
+                    }
+                  }
+
+                  return true; // Not found in registered
+                })
                 .map(([npk, data]) => ({ npk, ...data }));
 
               if (rekapSearch) {
