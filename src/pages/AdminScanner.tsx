@@ -3011,23 +3011,45 @@ export default function AdminScanner() {
                       </div>
                     </div>
                   </div>
-                  <div className="overflow-x-auto max-h-[500px]">
-                    <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-                      <thead className="bg-[#0f172a] text-white sticky top-0 z-10 shadow-sm">
-                        <tr>
-                          <th className="px-5 py-3 w-16 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">
-                            NO
-                          </th>
-                          <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">
-                            NAMA LENGKAP
-                          </th>
-                          <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 w-48">
-                            BIDANG STUDI
-                          </th>
-                          <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">
-                            NPK / AKUN SIAGA
-                          </th>
-                        </tr>
+
+                  {!referenceData ? (
+                    <div className="px-5 py-24 bg-white/50 border-t border-slate-100 flex flex-col items-center justify-center text-center">
+                      <div className="w-20 h-20 rounded-full bg-slate-100 border-4 border-white shadow-sm flex items-center justify-center mb-5 text-slate-300">
+                        <UserX className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-slate-700 font-bold text-lg mb-2">Daftar Nama Belum Tersedia</h3>
+                      <p className="text-slate-500 text-sm max-w-sm mb-6 leading-relaxed">
+                        Sistem mendeteksi ada <strong>{2769 - stats.total} peserta</strong> yang belum melakukan registrasi online. Untuk menampilkan siapa saja mereka secara akurat, fitur ini membutuhkan data acuan riil (Excel).
+                      </p>
+                      <label className="inline-flex cursor-pointer items-center justify-center gap-2.5 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-95">
+                        <Upload className="w-4 h-4" /> Unggah File Acuan Riil (Excel/CSV)
+                        <input
+                          type="file"
+                          accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto max-h-[500px]">
+                      <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+                        <thead className="bg-[#0f172a] text-white sticky top-0 z-10 shadow-sm">
+                          <tr>
+                            <th className="px-5 py-3 w-16 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">
+                              NO
+                            </th>
+                            <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300">
+                              NAMA LENGKAP
+                            </th>
+                            <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 w-48">
+                              BIDANG STUDI
+                            </th>
+                            <th className="px-5 py-3 font-semibold text-[10px] tracking-wider uppercase text-slate-300 text-center">
+                              NPK / AKUN SIAGA
+                            </th>
+                          </tr>
+
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium bg-white">
                         {paginatedUnregistered.map((u, idx) => (
@@ -3066,9 +3088,10 @@ export default function AdminScanner() {
                       </tbody>
                     </table>
                   </div>
+                  )}
 
                   {/* Unregistered Pagination Controls */}
-                  {totalUnregisteredPages > 1 && (
+                  {referenceData && totalUnregisteredPages > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 p-3 bg-slate-50/50 gap-4 flex-wrap">
                       <p className="text-[11px] text-slate-500 font-mono font-medium">
                         Menampilkan {startUnregisteredIndex + 1} -{" "}
