@@ -2763,6 +2763,7 @@ export default function AdminScanner() {
                 npk: normNpk(a.npk),
                 name: normName(a.fullName),
                 field: normName(a.studyField),
+                matched: false
               }));
 
               const dataSource = referenceData
@@ -2773,38 +2774,66 @@ export default function AdminScanner() {
                     ...data,
                   }));
 
-              let unregisteredList = dataSource.filter((item) => {
-                const uNpk = normNpk(item.npk);
-                const uName = normName(item.fullName);
-                const uField = normName(item.studyField);
+              const dataCandidates = dataSource.map((item) => ({
+                ...item,
+                uNpk: normNpk(item.npk),
+                uName: normName(item.fullName),
+                uField: normName(item.studyField),
+                matched: false
+              }));
 
-                const isRegistered = regItems.some((reg) => {
-                  // 1. Cocokan NPK/Siaga dengan NPK/Siaga (min 4 identik)
-                  if (uNpk && reg.npk && uNpk.length > 3 && reg.npk.length > 3) {
-                    if (uNpk === reg.npk || reg.npk.includes(uNpk) || uNpk.includes(reg.npk)) {
-                      return true; 
-                    }
+              // Pass 1: Cocokan NPK/Siaga dengan NPK/Siaga
+              dataCandidates.forEach(candidate => {
+                if (candidate.matched) return;
+                if (candidate.uNpk && candidate.uNpk.length > 5) {
+                  const matchIdx = regItems.findIndex(reg => 
+                    !reg.matched && reg.npk && reg.npk.length > 5 && 
+                    (candidate.uNpk === reg.npk || reg.npk.includes(candidate.uNpk) || candidate.uNpk.includes(reg.npk))
+                  );
+                  if (matchIdx !== -1) {
+                    candidate.matched = true;
+                    regItems[matchIdx].matched = true;
                   }
+                }
+              });
 
-                  // 2. Cocokan Nama dengan nama
-                  if (uName && reg.name && uName.length > 3 && reg.name.length > 3) {
-                     if (uName === reg.name || reg.name.includes(uName) || uName.includes(reg.name)) return true;
+              // Pass 2: Cocokan Nama dengan nama persis
+              dataCandidates.forEach(candidate => {
+                if (candidate.matched) return;
+                if (candidate.uName && candidate.uName.length > 3) {
+                  const matchIdx = regItems.findIndex(reg => 
+                    !reg.matched && reg.name && 
+                    (candidate.uName === reg.name)
+                  );
+                  if (matchIdx !== -1) {
+                    candidate.matched = true;
+                    regItems[matchIdx].matched = true;
+                  }
+                }
+              });
 
-                     // 3. Jika tidak ditemukan maka bisa mencocokan dengan bidang studi
-                     // Misal jika namanya sebagian sama (70% mirip) DAN bidang studinya cocok
-                     if (uField && reg.field && (uField.includes(reg.field) || reg.field.includes(uField))) {
-                       // Cek jika nama overlap cukup banyak (misal dari "Muhammad Saifudin", satu nulis "M. Saifudin")
-                       if (uName.substring(0, 5) === reg.name.substring(0, 5)) {
+              // Pass 3: Jika data tidak ditemukan maka bisa mencocokan dengan bidang studi dan kemiripan nama
+              dataCandidates.forEach(candidate => {
+                if (candidate.matched) return;
+                if (candidate.uName && candidate.uName.length > 3) {
+                  const matchIdx = regItems.findIndex(reg => {
+                    if (reg.matched || !reg.name) return false;
+                    const nameMatch = candidate.uName.includes(reg.name) || reg.name.includes(candidate.uName);
+                    if (nameMatch) {
+                       if (candidate.uField && reg.field && (candidate.uField.includes(reg.field) || reg.field.includes(candidate.uField))) {
                          return true;
                        }
-                     }
+                    }
+                    return false;
+                  });
+                  if (matchIdx !== -1) {
+                    candidate.matched = true;
+                    regItems[matchIdx].matched = true;
                   }
-
-                  return false;
-                });
-
-                return !isRegistered;
+                }
               });
+
+              let unregisteredList = dataCandidates.filter(item => !item.matched);
 
               if (rekapSearch) {
                 const q = rekapSearch.toLowerCase();
