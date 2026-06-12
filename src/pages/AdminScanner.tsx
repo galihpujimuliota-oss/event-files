@@ -37,6 +37,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { motion, AnimatePresence } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import { toPng } from "html-to-image";
+import * as XLSX from "xlsx";
 import { store, AttendeeData } from "../store/store";
 import {
   ALLOWED_ATTENDEES,
@@ -72,6 +73,85 @@ export default function AdminScanner() {
   const [scanInput, setScanInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const isScanningRef = useRef(true);
+
+  // Custom reference data upload
+  const [referenceData, setReferenceData] = useState<Array<{
+    npk: string;
+    fullName: string;
+    studyField: string;
+  }> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json<any>(worksheet);
+
+        const parsed = json
+          .map((row) => {
+            let npk = "";
+            let fullName = "";
+            let studyField = "";
+
+            for (const key of Object.keys(row)) {
+              const k = key.toLowerCase();
+              const val = String(row[key]);
+
+              if (
+                k.includes("npk") ||
+                k.includes("siaga") ||
+                k.includes("nomor") ||
+                k.includes("no")
+              ) {
+                if (!npk)
+                  npk =
+                    Object.keys(row).findIndex((i) => i === key) === 0
+                      ? val
+                      : npk || val;
+              }
+              if (k.includes("nama") || k.includes("name")) {
+                if (!fullName) fullName = val;
+              }
+              if (
+                k.includes("bidang") ||
+                k.includes("studi") ||
+                k.includes("kelas") ||
+                k.includes("mapel")
+              ) {
+                if (!studyField) studyField = val;
+              }
+            }
+
+            if (!fullName && Object.keys(row).length > 1) {
+              fullName = String(row[Object.keys(row)[1]]);
+            }
+
+            if (!npk && Object.keys(row).length > 0) {
+              npk = String(row[Object.keys(row)[0]]);
+            }
+
+            return { npk, fullName, studyField };
+          })
+          .filter((r) => r.fullName || r.npk);
+
+        setReferenceData(parsed);
+        alert(`Berhasil mengimpor ${parsed.length} data acuan!`);
+      } catch (err) {
+        alert("Gagal membaca file CSV/Excel.");
+        console.error(err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   // Pagination states to prevent browser OOM/crash with 2,800+ records
   const [dataPage, setDataPage] = useState(1);
@@ -2690,34 +2770,39 @@ export default function AdminScanner() {
                 }
               });
 
-              let unregisteredList = Object.entries(ALLOWED_ATTENDEES)
-                .filter(([npk, data]) => {
-                  const uNpk = norm(npk);
-                  const uName = norm(data.fullName);
-                  const uField = norm(data.studyField);
+              const dataSource = referenceData
+                ? referenceData
+                : Object.entries(ALLOWED_ATTENDEES).map(([npk, data]) => ({
+                    npk,
+                    ...data,
+                  }));
 
-                  // 1. Exact NPK match means they are already registered
-                  if (isSignificant(uNpk) && regNpkSet.has(uNpk)) return false;
+              let unregisteredList = dataSource.filter((item) => {
+                const uNpk = norm(item.npk);
+                const uName = norm(item.fullName);
+                const uField = norm(item.studyField);
 
-                  // 2. Exact Name Match + (Study Field match or loose match)
-                  if (isSignificant(uName) && regNameFieldMap.has(uName)) {
-                    const registeredFields = regNameFieldMap.get(uName)!;
-                    if (
-                      registeredFields.length === 0 || // Registered without a specific study field
-                      registeredFields.some(
-                        (f) =>
-                          f === uField ||
-                          uField.includes(f) ||
-                          f.includes(uField),
-                      )
-                    ) {
-                      return false; // Found a match, so considered registered
-                    }
+                // 1. Exact NPK match means they are already registered
+                if (isSignificant(uNpk) && regNpkSet.has(uNpk)) return false;
+
+                // 2. Exact Name Match + (Study Field match or loose match)
+                if (isSignificant(uName) && regNameFieldMap.has(uName)) {
+                  const registeredFields = regNameFieldMap.get(uName)!;
+                  if (
+                    registeredFields.length === 0 || // Registered without a specific study field
+                    registeredFields.some(
+                      (f) =>
+                        f === uField ||
+                        uField.includes(f) ||
+                        f.includes(uField),
+                    )
+                  ) {
+                    return false; // Found a match, so considered registered
                   }
+                }
 
-                  return true; // Not found in registered
-                })
-                .map(([npk, data]) => ({ npk, ...data }));
+                return true; // Not found in registered
+              });
 
               if (rekapSearch) {
                 const q = rekapSearch.toLowerCase();
@@ -2841,31 +2926,66 @@ export default function AdminScanner() {
                   <div className="p-4 bg-teal-50 border-b border-teal-100 text-teal-900 text-xs leading-relaxed">
                     <div className="flex items-start gap-2.5">
                       <Info className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
-                      <div>
+                      <div className="w-full">
                         <span className="font-bold text-teal-950 block mb-1">
                           Informasi Analisis Registrasi Sistem:
                         </span>
-                        <p className="mb-2 text-teal-850">
-                          Tabel di bawah menampilkan{" "}
-                          <strong>{unregisteredList.length} peserta</strong>{" "}
-                          yang tersisa dari total{" "}
-                          <strong>
-                            163 data sampel whitelist (acuan cepat)
-                          </strong>{" "}
-                          yang belum melakukan registrasi. Untuk peserta lainnya
-                          dari total seluruh{" "}
-                          <strong>2.769 calon peserta acuan PDF</strong>,
-                          verifikasi registrasi diproses secara dinamis
-                          menggunakan kecocokan format digit NPK/Siaga di sistem
-                          pendaftaran.
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-teal-200/50">
+                        {!referenceData ? (
+                          <>
+                            <p className="mb-2 text-teal-850">
+                              Tabel di bawah menampilkan{" "}
+                              <strong>{unregisteredList.length} peserta</strong>{" "}
+                              yang tersisa dari total{" "}
+                              <strong>
+                                163 data sampel whitelist (acuan cepat)
+                              </strong>{" "}
+                              yang belum melakukan registrasi. Untuk menampilkan
+                              nama riil sisa{" "}
+                              <strong>{2769 - stats.total} orang</strong> secara{" "}
+                              <strong>akurat</strong>, Anda harus mengunggah
+                              file rekap/acuan pesertanya (Excel/CSV) ke dalam
+                              sistem.
+                            </p>
+                            <label className="inline-flex w-max mt-1 mb-3 cursor-pointer items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm">
+                              <Upload className="w-4 h-4" /> Unggah File Acuan
+                              Riil (Excel/CSV)
+                              <input
+                                type="file"
+                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                              />
+                            </label>
+                          </>
+                        ) : (
+                          <>
+                            <p className="mb-2 text-teal-850">
+                              Tabel di bawah menampilkan analisa akurat dari
+                              dokumen pencocokan yang baru saja Anda unggah.
+                            </p>
+                            <label className="inline-flex w-max mt-1 mb-3 cursor-pointer items-center justify-center gap-2 bg-white border border-teal-300 text-teal-800 hover:bg-teal-100 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all">
+                              <RefreshCw className="w-3.5 h-3.5" /> Ganti File
+                              Acuan
+                              <input
+                                type="file"
+                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                              />
+                            </label>
+                          </>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1 pt-3 border-t border-teal-200/50">
                           <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                             <span className="text-teal-700 block text-[10px] font-bold uppercase tracking-wider">
-                              Total Peserta Acuan PDF
+                              Total Peserta Acuan{" "}
+                              {referenceData ? "Unggahan" : "PDF"}
                             </span>
                             <span className="text-base font-black text-teal-950 font-mono">
-                              2.769 Orang
+                              {referenceData ? referenceData.length : 2769}{" "}
+                              Orang
                             </span>
                           </div>
                           <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -2881,7 +3001,10 @@ export default function AdminScanner() {
                               Sisa Belum Registrasi (Riil)
                             </span>
                             <span className="text-base font-black text-amber-950 font-mono">
-                              {2769 - stats.total} Orang
+                              {referenceData
+                                ? unregisteredList.length
+                                : 2769 - stats.total}{" "}
+                              Orang
                             </span>
                           </div>
                         </div>
