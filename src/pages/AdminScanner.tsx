@@ -94,7 +94,7 @@ export default function AdminScanner() {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json<any>(worksheet);
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false });
 
         const parsed = json
           .map((row) => {
@@ -105,7 +105,7 @@ export default function AdminScanner() {
 
             for (const key of Object.keys(row)) {
               const k = key.toLowerCase().trim();
-              const val = String(row[key]);
+              const val = String(row[key] || "");
 
               if (k === "no" || k === "no." || k === "nomor") {
                 if (!noUrut) noUrut = val;
@@ -124,11 +124,11 @@ export default function AdminScanner() {
             }
 
             if (!fullName && Object.keys(row).length > 2) {
-              fullName = String(row[Object.keys(row)[2]]);
+              fullName = String(row[Object.keys(row)[2]] || "");
             }
 
             if (!npk && Object.keys(row).length > 1) {
-              npk = String(row[Object.keys(row)[1]]);
+              npk = String(row[Object.keys(row)[1]] || "");
             }
 
             return { noUrut, npk, fullName, studyField };
@@ -2744,24 +2744,26 @@ export default function AdminScanner() {
                 String(s || "")
                   .trim()
                   .toLowerCase();
-              const isSignificant = (s: string) =>
-                s.length > 3 &&
-                !["none", "null", "-", "0", "na", "n/a"].includes(s);
+                  
+              const normNpk = (s: any) => 
+                String(s || "")
+                  .replace(/[^a-zA-Z0-9]/g, "")
+                  .toLowerCase();
+                  
+              const normName = (s: any) => 
+                String(s || "")
+                  .toLowerCase()
+                  .replace(/s\.?pd/g, "")
+                  .replace(/m\.?pd/g, "")
+                  .replace(/s\.?ag/g, "")
+                  .replace(/[^a-z0-9]/g, "");
 
-              const regNpkSet = new Set<string>();
-              const regNameFieldMap = new Map<string, string[]>();
-
-              attendeesList.forEach((a) => {
-                const npk = norm(a.npk);
-                if (isSignificant(npk)) regNpkSet.add(npk);
-
-                const name = norm(a.fullName);
-                const field = norm(a.studyField);
-                if (isSignificant(name)) {
-                  if (!regNameFieldMap.has(name)) regNameFieldMap.set(name, []);
-                  if (field) regNameFieldMap.get(name)!.push(field);
-                }
-              });
+              const regItems = attendeesList.map((a) => ({
+                orig: a,
+                npk: normNpk(a.npk),
+                name: normName(a.fullName),
+                field: normName(a.studyField),
+              }));
 
               const dataSource = referenceData
                 ? referenceData
@@ -2772,30 +2774,36 @@ export default function AdminScanner() {
                   }));
 
               let unregisteredList = dataSource.filter((item) => {
-                const uNpk = norm(item.npk);
-                const uName = norm(item.fullName);
-                const uField = norm(item.studyField);
+                const uNpk = normNpk(item.npk);
+                const uName = normName(item.fullName);
+                const uField = normName(item.studyField);
 
-                // 1. Exact NPK match means they are already registered
-                if (isSignificant(uNpk) && regNpkSet.has(uNpk)) return false;
-
-                // 2. Exact Name Match + (Study Field match or loose match)
-                if (isSignificant(uName) && regNameFieldMap.has(uName)) {
-                  const registeredFields = regNameFieldMap.get(uName)!;
-                  if (
-                    registeredFields.length === 0 || // Registered without a specific study field
-                    registeredFields.some(
-                      (f) =>
-                        f === uField ||
-                        uField.includes(f) ||
-                        f.includes(uField),
-                    )
-                  ) {
-                    return false; // Found a match, so considered registered
+                const isRegistered = regItems.some((reg) => {
+                  // 1. Cocokan NPK/Siaga dengan NPK/Siaga (min 4 identik)
+                  if (uNpk && reg.npk && uNpk.length > 3 && reg.npk.length > 3) {
+                    if (uNpk === reg.npk || reg.npk.includes(uNpk) || uNpk.includes(reg.npk)) {
+                      return true; 
+                    }
                   }
-                }
 
-                return true; // Not found in registered
+                  // 2. Cocokan Nama dengan nama
+                  if (uName && reg.name && uName.length > 3 && reg.name.length > 3) {
+                     if (uName === reg.name || reg.name.includes(uName) || uName.includes(reg.name)) return true;
+
+                     // 3. Jika tidak ditemukan maka bisa mencocokan dengan bidang studi
+                     // Misal jika namanya sebagian sama (70% mirip) DAN bidang studinya cocok
+                     if (uField && reg.field && (uField.includes(reg.field) || reg.field.includes(uField))) {
+                       // Cek jika nama overlap cukup banyak (misal dari "Muhammad Saifudin", satu nulis "M. Saifudin")
+                       if (uName.substring(0, 5) === reg.name.substring(0, 5)) {
+                         return true;
+                       }
+                     }
+                  }
+
+                  return false;
+                });
+
+                return !isRegistered;
               });
 
               if (rekapSearch) {
@@ -2935,7 +2943,7 @@ export default function AdminScanner() {
                               </strong>{" "}
                               yang belum melakukan registrasi. Untuk menampilkan
                               nama riil sisa{" "}
-                              <strong>{2769 - stats.total} orang</strong> secara{" "}
+                              <strong>{unregisteredList.length} orang</strong> secara{" "}
                               <strong>akurat</strong>, Anda harus mengunggah
                               file rekap/acuan pesertanya (Excel/CSV) ke dalam
                               sistem.
@@ -2974,12 +2982,10 @@ export default function AdminScanner() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1 pt-3 border-t border-teal-200/50">
                           <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                             <span className="text-teal-700 block text-[10px] font-bold uppercase tracking-wider">
-                              Total Peserta Acuan{" "}
-                              {referenceData ? "Unggahan" : "PDF"}
+                              Total Peserta Acuan {referenceData ? "Unggahan" : "PDF"}
                             </span>
                             <span className="text-base font-black text-teal-950 font-mono">
-                              {referenceData ? referenceData.length : 2769}{" "}
-                              Orang
+                              {referenceData ? referenceData.length : 2769} Orang
                             </span>
                           </div>
                           <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -2987,7 +2993,7 @@ export default function AdminScanner() {
                               Telah Registrasi Online
                             </span>
                             <span className="text-base font-black text-emerald-950 font-mono">
-                              {stats.total} Orang
+                              {referenceData ? (referenceData.length - unregisteredList.length) : stats.total} Orang
                             </span>
                           </div>
                           <div className="bg-white/70 p-2.5 rounded-lg border border-teal-200/40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -2995,10 +3001,7 @@ export default function AdminScanner() {
                               Sisa Belum Registrasi (Riil)
                             </span>
                             <span className="text-base font-black text-amber-950 font-mono">
-                              {referenceData
-                                ? unregisteredList.length
-                                : 2769 - stats.total}{" "}
-                              Orang
+                              {unregisteredList.length} Orang
                             </span>
                           </div>
                         </div>
@@ -3013,7 +3016,7 @@ export default function AdminScanner() {
                       </div>
                       <h3 className="text-slate-700 font-bold text-lg mb-2">Daftar Nama Belum Tersedia</h3>
                       <p className="text-slate-500 text-sm max-w-sm mb-6 leading-relaxed">
-                        Sistem mendeteksi ada <strong>{2769 - stats.total} peserta</strong> yang belum melakukan registrasi online. Untuk menampilkan siapa saja mereka secara akurat, fitur ini membutuhkan data acuan riil (Excel).
+                        Sistem mendeteksi ada <strong>{unregisteredList.length} peserta</strong> yang belum melakukan registrasi online. Untuk menampilkan siapa saja mereka secara akurat, fitur ini membutuhkan data acuan riil (Excel).
                       </p>
                       <label className="inline-flex cursor-pointer items-center justify-center gap-2.5 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-95">
                         <Upload className="w-4 h-4" /> Unggah File Acuan Riil (Excel/CSV)
