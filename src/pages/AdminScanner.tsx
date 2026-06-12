@@ -76,6 +76,7 @@ export default function AdminScanner() {
 
   // Custom reference data upload
   const [referenceData, setReferenceData] = useState<Array<{
+    noUrut: string;
     npk: string;
     fullName: string;
     studyField: string;
@@ -97,30 +98,22 @@ export default function AdminScanner() {
 
         const parsed = json
           .map((row) => {
+            let noUrut = "";
             let npk = "";
             let fullName = "";
             let studyField = "";
 
             for (const key of Object.keys(row)) {
-              const k = key.toLowerCase();
+              const k = key.toLowerCase().trim();
               const val = String(row[key]);
 
-              if (
-                k.includes("npk") ||
-                k.includes("siaga") ||
-                k.includes("nomor") ||
-                k.includes("no")
-              ) {
-                if (!npk)
-                  npk =
-                    Object.keys(row).findIndex((i) => i === key) === 0
-                      ? val
-                      : npk || val;
-              }
-              if (k.includes("nama") || k.includes("name")) {
+              if (k === "no" || k === "no." || k === "nomor") {
+                if (!noUrut) noUrut = val;
+              } else if (k.includes("npk") || k.includes("siaga")) {
+                if (!npk) npk = val;
+              } else if (k.includes("nama") || k.includes("name")) {
                 if (!fullName) fullName = val;
-              }
-              if (
+              } else if (
                 k.includes("bidang") ||
                 k.includes("studi") ||
                 k.includes("kelas") ||
@@ -130,15 +123,15 @@ export default function AdminScanner() {
               }
             }
 
-            if (!fullName && Object.keys(row).length > 1) {
-              fullName = String(row[Object.keys(row)[1]]);
+            if (!fullName && Object.keys(row).length > 2) {
+              fullName = String(row[Object.keys(row)[2]]);
             }
 
-            if (!npk && Object.keys(row).length > 0) {
-              npk = String(row[Object.keys(row)[0]]);
+            if (!npk && Object.keys(row).length > 1) {
+              npk = String(row[Object.keys(row)[1]]);
             }
 
-            return { npk, fullName, studyField };
+            return { noUrut, npk, fullName, studyField };
           })
           .filter((r) => r.fullName || r.npk);
 
@@ -2772,7 +2765,8 @@ export default function AdminScanner() {
 
               const dataSource = referenceData
                 ? referenceData
-                : Object.entries(ALLOWED_ATTENDEES).map(([npk, data]) => ({
+                : Object.entries(ALLOWED_ATTENDEES).map(([npk, data], i) => ({
+                    noUrut: String(i + 1),
                     npk,
                     ...data,
                   }));
@@ -2853,7 +2847,7 @@ export default function AdminScanner() {
                 const csvRows = [
                   headers.map(escapeCsvField).join(","),
                   ...unregisteredList.map((u, i) =>
-                    [String(i + 1), u.fullName, u.npk, u.studyField]
+                    [u.noUrut || String(i + 1), u.fullName, u.npk, u.studyField]
                       .map(escapeCsvField)
                       .join(","),
                   ),
@@ -3054,11 +3048,11 @@ export default function AdminScanner() {
                       <tbody className="divide-y divide-slate-100 font-medium bg-white">
                         {paginatedUnregistered.map((u, idx) => (
                           <tr
-                            key={u.npk}
+                            key={u.npk + idx}
                             className="hover:bg-slate-50/50 transition-colors"
                           >
                             <td className="px-5 py-4 text-slate-400 font-mono text-xs text-center">
-                              {startUnregisteredIndex + idx + 1}
+                              {u.noUrut || (startUnregisteredIndex + idx + 1)}
                             </td>
                             <td className="px-5 py-4 font-bold text-slate-800 uppercase">
                               {u.fullName}
