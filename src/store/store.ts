@@ -599,13 +599,20 @@ export const store = {
   },
 
   async getSettings() {
-    let settings = { isRegistrationOpen: true };
+    let settings = { isRegistrationOpen: true, isLuringOpen: true, isDaringOpen: true };
     // 1. Get from Supabase first if available (sync across instances)
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('attendees').select('attendanceType').eq('npk', 'APP_SETTINGS').maybeSingle();
+        const { data, error } = await supabase.from('attendees').select('attendanceType, address').eq('npk', 'APP_SETTINGS').maybeSingle();
         if (!error && data) {
           settings.isRegistrationOpen = data.attendanceType !== 'CLOSED';
+          if (data.address) {
+            try {
+              const extraSettings = JSON.parse(data.address);
+              if (typeof extraSettings.isLuringOpen !== 'undefined') settings.isLuringOpen = extraSettings.isLuringOpen;
+              if (typeof extraSettings.isDaringOpen !== 'undefined') settings.isDaringOpen = extraSettings.isDaringOpen;
+            } catch(e) {}
+          }
           return settings;
         }
       } catch (e) {
@@ -618,7 +625,7 @@ export const store = {
       const res = await fetch(`/api/settings?t=${Date.now()}`);
       if (res.ok) {
         const localSettings = await res.json();
-        return localSettings;
+        return { ...settings, ...localSettings };
       }
     } catch (e) {
       console.error('Failed to get settings:', e);
@@ -635,6 +642,7 @@ export const store = {
           npk: 'APP_SETTINGS',
           fullName: 'System Settings (DO NOT DELETE)',
           attendanceType: settings.isRegistrationOpen ? 'OPEN' : 'CLOSED',
+          address: JSON.stringify({ isLuringOpen: settings.isLuringOpen, isDaringOpen: settings.isDaringOpen }),
           isRegistered: true,
           status: 'VERIFIED'
         };

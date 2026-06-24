@@ -10,9 +10,16 @@ export default function AttendanceForm() {
   const [selectedType, setSelectedType] = useState<'DARING' | 'LURING' | ''>('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState<boolean | null>(null);
+  const [isLuringOpen, setIsLuringOpen] = useState<boolean>(true);
+  const [isDaringOpen, setIsDaringOpen] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
-    store.getSettings().then(s => setIsRegistrationOpen(s?.isRegistrationOpen !== false));
+    store.getSettings().then(s => {
+      setIsRegistrationOpen(s?.isRegistrationOpen !== false);
+      setIsLuringOpen(s?.isLuringOpen !== false);
+      setIsDaringOpen(s?.isDaringOpen !== false);
+    });
   }, []);
 
   useEffect(() => {
@@ -50,6 +57,15 @@ export default function AttendanceForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedType) return;
+    
+    if (selectedType === 'DARING' && !isDaringOpen) {
+      setErrorMsg('Registrasi Daring telah ditutup, Silahkan memilih Luring');
+      return;
+    }
+    if (selectedType === 'LURING' && !isLuringOpen) {
+      setErrorMsg('Registrasi Luring telah ditutup, Silahkan memilih Daring');
+      return;
+    }
 
     await store.saveAttendee({ attendanceType: selectedType });
     navigate('/form-pembayaran');
@@ -68,17 +84,32 @@ export default function AttendanceForm() {
             Menyatakan kesediaan hadir pada Yudisium dan Pengukuhan Guru Profesional secara:
           </label>
           
+          {errorMsg && (
+            <div className="bg-rose-50 text-rose-600 p-4 rounded-xl border border-rose-200 text-sm font-medium animate-in fade-in zoom-in duration-200">
+              {errorMsg}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
-              onClick={() => { setSelectedType('DARING'); store.saveAttendee({ attendanceType: 'DARING' }); }}
-              className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'DARING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
+              onClick={() => {
+                if (!isDaringOpen) {
+                  setErrorMsg('Registrasi Daring telah ditutup, Silahkan memilih Luring');
+                  return;
+                }
+                setErrorMsg('');
+                setSelectedType('DARING'); 
+                store.saveAttendee({ attendanceType: 'DARING' }); 
+              }}
+              className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'DARING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : !isDaringOpen ? 'border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={`p-2 rounded-lg ${selectedType === 'DARING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   <RadioTower className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-slate-800" translate="no">DARING</span>
+                {!isDaringOpen && <span className="ml-auto text-xs font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded">DITUTUP</span>}
               </div>
               <p className="text-sm text-slate-500">Live Streaming YouTube</p>
               <p className="text-xs text-slate-400 mt-2 font-mono">Biaya Surat: Rp 100k</p>
@@ -86,14 +117,23 @@ export default function AttendanceForm() {
 
             <button
               type="button"
-              onClick={() => { setSelectedType('LURING'); store.saveAttendee({ attendanceType: 'LURING' }); }}
-              className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'LURING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
+              onClick={() => {
+                if (!isLuringOpen) {
+                  setErrorMsg('Registrasi Luring telah ditutup, Silahkan memilih Daring');
+                  return;
+                }
+                setErrorMsg('');
+                setSelectedType('LURING'); 
+                store.saveAttendee({ attendanceType: 'LURING' }); 
+              }}
+              className={`p-6 text-left rounded-2xl border-2 transition-all ${selectedType === 'LURING' ? 'border-teal-500 bg-teal-50 shadow-[0_4px_20px_-4px_rgba(20,184,166,0.3)] scale-[1.02]' : !isLuringOpen ? 'border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed' : 'border-slate-100 bg-white hover:border-teal-200 hover:bg-slate-50'}`}
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={`p-2 rounded-lg ${selectedType === 'LURING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   <Users className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-slate-800" translate="no">LURING</span>
+                {!isLuringOpen && <span className="ml-auto text-xs font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded">DITUTUP</span>}
               </div>
               <p className="text-sm text-slate-500">Hadir di Ascent Premiere Hotel</p>
               <p className="text-xs text-slate-400 mt-2 font-mono">Biaya Total: Rp 450k</p>

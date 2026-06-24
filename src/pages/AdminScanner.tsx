@@ -701,6 +701,8 @@ export default function AdminScanner() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+  const [isLuringOpen, setIsLuringOpen] = useState(true);
+  const [isDaringOpen, setIsDaringOpen] = useState(true);
 
   const updateStats = async () => {
     setIsRefreshing(true);
@@ -713,6 +715,8 @@ export default function AdminScanner() {
 
       const settings = await store.getSettings();
       setIsRegistrationOpen(settings?.isRegistrationOpen !== false);
+      setIsLuringOpen(settings?.isLuringOpen !== false);
+      setIsDaringOpen(settings?.isDaringOpen !== false);
 
       const luringCount = all.filter(
         (a) =>
@@ -743,9 +747,27 @@ export default function AdminScanner() {
   const handleToggleRegistration = async () => {
     const newState = !isRegistrationOpen;
     setIsRegistrationOpen(newState);
-    await store.updateSettings({ isRegistrationOpen: newState });
+    await store.updateSettings({ isRegistrationOpen: newState, isLuringOpen, isDaringOpen });
     addLog(
       `Tombol registrasi diubah ke status: ${newState ? "ON (DIBUKA)" : "OFF (DITUTUP)"}`,
+    );
+  };
+
+  const handleToggleLuring = async () => {
+    const newState = !isLuringOpen;
+    setIsLuringOpen(newState);
+    await store.updateSettings({ isRegistrationOpen, isLuringOpen: newState, isDaringOpen });
+    addLog(
+      `Tombol Luring diubah ke status: ${newState ? "ON (DIBUKA)" : "OFF (DITUTUP)"}`,
+    );
+  };
+
+  const handleToggleDaring = async () => {
+    const newState = !isDaringOpen;
+    setIsDaringOpen(newState);
+    await store.updateSettings({ isRegistrationOpen, isLuringOpen, isDaringOpen: newState });
+    addLog(
+      `Tombol Daring diubah ke status: ${newState ? "ON (DIBUKA)" : "OFF (DITUTUP)"}`,
     );
   };
 
@@ -3573,6 +3595,39 @@ export default function AdminScanner() {
               </div>
 
               <div className="space-y-6">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+                  <h4 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                    🛠️ Pengaturan Form Registrasi
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-slate-700 text-sm">Pendaftaran Luring</p>
+                        <p className="text-xs text-slate-500 mt-1">{isLuringOpen ? "Peserta bisa memilih Luring" : "Pilihan Luring ditutup"}</p>
+                      </div>
+                      <button
+                        onClick={handleToggleLuring}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isLuringOpen ? "bg-teal-500" : "bg-slate-300"}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isLuringOpen ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-slate-700 text-sm">Pendaftaran Daring</p>
+                        <p className="text-xs text-slate-500 mt-1">{isDaringOpen ? "Peserta bisa memilih Daring" : "Pilihan Daring ditutup"}</p>
+                      </div>
+                      <button
+                        onClick={handleToggleDaring}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isDaringOpen ? "bg-teal-500" : "bg-slate-300"}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isDaringOpen ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                     <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-1">
